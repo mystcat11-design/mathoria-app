@@ -64,6 +64,7 @@ export function QuizInterface({ student, selectedLevel, onComplete, onCancel, qu
   };
   
   const [showFeedback, setShowFeedback] = useState(false);
+  const [currentFeedbackMsg, setCurrentFeedbackMsg] = useState<{ emoji: string; title: string; message: string } | null>(null);
   const [timeElapsed, setTimeElapsed] = useState(0);
   const [isCompleting, setIsCompleting] = useState(false); // New state for quiz completion
   const [answerDetails, setAnswerDetails] = useState<Array<{
@@ -147,7 +148,14 @@ export function QuizInterface({ student, selectedLevel, onComplete, onCancel, qu
     const newTheta = updateAbility(theta, isCorrect, currentQuestion.difficulty, currentQuestion.discrimination);
     setTheta(newTheta);
 
-    // Wait before moving to next question
+    // Get feedback message and calculate duration
+    const feedbackMsg = getFeedbackMessage(isCorrect);
+    setCurrentFeedbackMsg(feedbackMsg); // Store for consistent display
+    const feedbackDuration = calculateFeedbackDuration(feedbackMsg);
+
+    console.log(`⏱️ Feedback duration: ${feedbackDuration}ms for message: "${feedbackMsg.message}"`);
+
+    // Wait before moving to next question (dynamic duration based on message length)
     setTimeout(() => {
       console.log('⏰ setTimeout executed:', {
         currentQuestionIndex,
@@ -160,6 +168,7 @@ export function QuizInterface({ student, selectedLevel, onComplete, onCancel, qu
         setCurrentQuestionIndex(prev => prev + 1);
         setSelectedAnswer(null);
         setShowFeedback(false);
+        setCurrentFeedbackMsg(null); // Reset feedback message for next question
       } else {
         console.log('🎉 Quiz completing now!');
         setIsCompleting(true); // Mark as completing
@@ -202,13 +211,25 @@ export function QuizInterface({ student, selectedLevel, onComplete, onCancel, qu
           console.error('Error details:', error);
         }
       }
-    }, 3000); // Ubah dari 1500 menjadi 3000 untuk memberikan waktu lebih untuk apresiasi
+    }, feedbackDuration); // Dynamic duration (7-10 seconds) based on message length
   };
 
   // Get random feedback message
   const getFeedbackMessage = (isCorrect: boolean) => {
     const messages = isCorrect ? CORRECT_MESSAGES : INCORRECT_MESSAGES;
     return messages[Math.floor(Math.random() * messages.length)];
+  };
+
+  // Calculate feedback duration based on message length
+  const calculateFeedbackDuration = (message: { title: string; message: string }) => {
+    const fullText = `${message.title} ${message.message}`;
+    const wordCount = fullText.split(' ').length;
+
+    // Base time: 5000ms (5 seconds)
+    // Add 150ms per word
+    // Min: 7000ms (7 seconds), Max: 10000ms (10 seconds)
+    const duration = 5000 + (wordCount * 150);
+    return Math.min(Math.max(duration, 7000), 10000);
   };
 
   const formatTime = (seconds: number) => {
@@ -335,10 +356,10 @@ export function QuizInterface({ student, selectedLevel, onComplete, onCancel, qu
         </div>
 
         {/* Explanation */}
-        {showFeedback && (() => {
+        {showFeedback && currentFeedbackMsg && (() => {
           const isCorrect = selectedAnswer === currentQuestion.correctAnswer;
-          const feedbackMsg = getFeedbackMessage(isCorrect);
-          
+          const feedbackMsg = currentFeedbackMsg; // Use stored feedback message for consistency
+
           return (
             <>
               {/* Feedback Modal/Card - Apresiasi atau Motivasi */}
