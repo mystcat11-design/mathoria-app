@@ -1,9 +1,9 @@
 import { useState, useMemo } from 'react';
 import * as React from 'react';
 import { Student } from '../App';
-import { Users, TrendingUp, Award, BookOpen, BarChart3, Activity, Trophy, Star, ChevronDown, ChevronUp, FileText } from 'lucide-react';
+import { Users, TrendingUp, Award, BookOpen, BarChart3, Activity, Trophy, Star, ChevronDown, ChevronUp, FileText, X } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { getBadgeInfo } from '../utils/badgeInfo';
+import { getBadgeInfo, BADGE_ORDER, BADGE_INFO } from '../utils/badgeInfo';
 import { Question } from '../utils/irtEngine';
 import { QuestionBankEditor } from './QuestionBankEditor';
 import { EssayReviewPanel } from './EssayReviewPanel';
@@ -29,6 +29,8 @@ export function TeacherDashboard({ students, onLogout, questions, onUpdateQuesti
   const [sortField, setSortField] = useState<'name' | 'theta' | 'score' | 'level' | 'badges'>('score');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [expandedStudent, setExpandedStudent] = useState<string | null>(null);
+  const [editingBadgesStudent, setEditingBadgesStudent] = useState<Student | null>(null);
+  const [selectedBadges, setSelectedBadges] = useState<string[]>([]);
 
   const handleRefreshTheta = () => {
     const confirmed = window.confirm(
@@ -69,6 +71,46 @@ export function TeacherDashboard({ students, onLogout, questions, onUpdateQuesti
         // Reload to apply changes
         window.location.reload();
       }
+    }
+  };
+
+  const handleEditBadges = (student: Student) => {
+    setEditingBadgesStudent(student);
+    setSelectedBadges([...student.badges]);
+  };
+
+  const handleSaveBadges = () => {
+    if (!editingBadgesStudent) return;
+
+    const savedStudents = localStorage.getItem('mathIRT_students');
+    if (savedStudents) {
+      const studentsList: Student[] = JSON.parse(savedStudents);
+
+      const updatedStudents = studentsList.map(s =>
+        s.id === editingBadgesStudent.id
+          ? { ...s, badges: selectedBadges }
+          : s
+      );
+
+      localStorage.setItem('mathIRT_students', JSON.stringify(updatedStudents));
+
+      // Sync to cloud
+      const updatedStudent = updatedStudents.find(s => s.id === editingBadgesStudent.id);
+      if (updatedStudent) {
+        import('../utils/supabaseClient').then(({ updateStudent }) => {
+          updateStudent(updatedStudent.id, { badges: selectedBadges });
+        });
+      }
+
+      window.location.reload();
+    }
+  };
+
+  const toggleBadge = (badgeName: string) => {
+    if (selectedBadges.includes(badgeName)) {
+      setSelectedBadges(selectedBadges.filter(b => b !== badgeName));
+    } else {
+      setSelectedBadges([...selectedBadges, badgeName]);
     }
   };
 
@@ -708,7 +750,15 @@ export function TeacherDashboard({ students, onLogout, questions, onUpdateQuesti
 
                                 {/* Badges */}
                                 <div>
-                                  <h4 className="font-semibold text-gray-900 mb-3">Badge Diraih ({student.badges.length})</h4>
+                                  <div className="flex items-center justify-between mb-3">
+                                    <h4 className="font-semibold text-gray-900">Badge Diraih ({student.badges.length})</h4>
+                                    <button
+                                      onClick={() => handleEditBadges(student)}
+                                      className="px-3 py-1 bg-purple-600 hover:bg-purple-700 text-white text-xs font-medium rounded-lg transition-colors"
+                                    >
+                                      Edit Badge
+                                    </button>
+                                  </div>
                                   <div className="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto pr-2">
                                     {student.badges.length > 0 ? (
                                       student.badges.map(badge => {
@@ -757,6 +807,92 @@ export function TeacherDashboard({ students, onLogout, questions, onUpdateQuesti
           </ErrorBoundary>
         )}
       </main>
+
+      {/* Badge Edit Modal */}
+      {editingBadgesStudent && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setEditingBadgesStudent(null)}>
+          <div
+            className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="sticky top-0 bg-gradient-to-r from-purple-600 to-indigo-600 text-white p-6 rounded-t-2xl">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-2xl font-bold">Edit Badge</h2>
+                  <p className="text-purple-100 mt-1">{editingBadgesStudent.name}</p>
+                </div>
+                <button
+                  onClick={() => setEditingBadgesStudent(null)}
+                  className="p-2 hover:bg-white/20 rounded-full transition-colors"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+            </div>
+
+            {/* Content */}
+            <div className="p-6">
+              <div className="mb-4 bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <p className="text-sm text-blue-800">
+                  <strong>Petunjuk:</strong> Klik badge untuk menambah/menghapus dari siswa. Badge yang dipilih akan ditandai dengan ✓
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                {BADGE_ORDER.map(badgeName => {
+                  const badgeInfo = BADGE_INFO[badgeName];
+                  if (!badgeInfo) return null;
+
+                  const isSelected = selectedBadges.includes(badgeName);
+
+                  return (
+                    <button
+                      key={badgeName}
+                      onClick={() => toggleBadge(badgeName)}
+                      className={`${badgeInfo.color} border-2 rounded-lg px-4 py-3 transition-all hover:scale-105 text-left relative ${
+                        isSelected ? 'ring-4 ring-purple-500 shadow-lg' : 'opacity-60 hover:opacity-100'
+                      }`}
+                    >
+                      {isSelected && (
+                        <div className="absolute top-2 right-2 w-6 h-6 bg-purple-600 rounded-full flex items-center justify-center">
+                          <span className="text-white text-sm font-bold">✓</span>
+                        </div>
+                      )}
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-2xl">{badgeInfo.icon}</span>
+                        <span className="text-sm font-semibold">{badgeName}</span>
+                      </div>
+                      <p className="text-xs opacity-80">{badgeInfo.description}</p>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="sticky bottom-0 bg-gray-50 border-t border-gray-200 p-6 rounded-b-2xl flex items-center justify-between">
+              <div className="text-sm text-gray-600">
+                <strong>{selectedBadges.length}</strong> badge dipilih dari <strong>{BADGE_ORDER.length}</strong> tersedia
+              </div>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setEditingBadgesStudent(null)}
+                  className="px-6 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium rounded-lg transition-colors"
+                >
+                  Batal
+                </button>
+                <button
+                  onClick={handleSaveBadges}
+                  className="px-6 py-2 bg-purple-600 hover:bg-purple-700 text-white font-medium rounded-lg transition-colors"
+                >
+                  Simpan Perubahan
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
