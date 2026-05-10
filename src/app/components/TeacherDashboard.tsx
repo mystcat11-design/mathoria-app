@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import * as React from 'react';
 import { Student } from '../App';
-import { Users, TrendingUp, Award, BookOpen, BarChart3, Activity, Trophy, Star, ChevronDown, ChevronUp, FileText, X } from 'lucide-react';
+import { Users, TrendingUp, Award, BookOpen, BarChart3, Activity, Trophy, Star, ChevronDown, ChevronUp, X } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { getBadgeInfo, BADGE_ORDER, BADGE_INFO } from '../utils/badgeInfo';
 import { Question } from '../utils/irtEngine';
@@ -20,21 +20,6 @@ interface TeacherDashboardProps {
 
 export function TeacherDashboard({ students, onLogout, questions, onUpdateQuestions }: TeacherDashboardProps) {
   const [activeTab, setActiveTab] = useState<'overview' | 'essays' | 'questions'>('overview');
-
-  // Load custom badges
-  React.useEffect(() => {
-    const saved = localStorage.getItem('mathIRT_customBadges');
-    if (saved) {
-      setCustomBadges(JSON.parse(saved));
-    }
-  }, []);
-
-  console.log('👩‍🏫 TeacherDashboard received questions:', {
-    questionsType: typeof questions,
-    questionsIsArray: Array.isArray(questions),
-    questionsLength: questions?.length,
-    currentTab: activeTab
-  });
   const [sortField, setSortField] = useState<'name' | 'theta' | 'score' | 'level' | 'badges'>('score');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [expandedStudent, setExpandedStudent] = useState<string | null>(null);
@@ -42,6 +27,13 @@ export function TeacherDashboard({ students, onLogout, questions, onUpdateQuesti
   const [selectedBadges, setSelectedBadges] = useState<string[]>([]);
   const [showBadgeManager, setShowBadgeManager] = useState(false);
   const [customBadges, setCustomBadges] = useState<CustomBadge[]>([]);
+
+  React.useEffect(() => {
+    const saved = localStorage.getItem('mathIRT_customBadges');
+    if (saved) {
+      setCustomBadges(JSON.parse(saved));
+    }
+  }, []);
 
   const handleRefreshTheta = () => {
     const confirmed = window.confirm(
@@ -61,13 +53,10 @@ export function TeacherDashboard({ students, onLogout, questions, onUpdateQuesti
         const updatedStudents = studentsList.map(student => {
           let newTheta = student.averageAbility;
 
-          // If theta is 0 and student has ability history, use latest value
           if (newTheta === 0 && student.abilityHistory && student.abilityHistory.length > 0) {
             newTheta = student.abilityHistory[student.abilityHistory.length - 1].ability;
-          }
-          // If still 0 and student has completed tests, give default theta
-          else if (newTheta === 0 && student.testsCompleted > 0) {
-            newTheta = 0.5; // Default "average" student ability
+          } else if (newTheta === 0 && student.testsCompleted > 0) {
+            newTheta = 0.5;
           }
 
           return {
@@ -76,10 +65,7 @@ export function TeacherDashboard({ students, onLogout, questions, onUpdateQuesti
           };
         });
 
-        // Save back to localStorage
         localStorage.setItem('mathIRT_students', JSON.stringify(updatedStudents));
-
-        // Reload to apply changes
         window.location.reload();
       }
     }
@@ -105,7 +91,6 @@ export function TeacherDashboard({ students, onLogout, questions, onUpdateQuesti
 
       localStorage.setItem('mathIRT_students', JSON.stringify(updatedStudents));
 
-      // Sync to cloud
       const updatedStudent = updatedStudents.find(s => s.id === editingBadgesStudent.id);
       if (updatedStudent) {
         import('../utils/supabaseClient').then(({ updateStudent }) => {
@@ -125,7 +110,6 @@ export function TeacherDashboard({ students, onLogout, questions, onUpdateQuesti
     }
   };
 
-  // Helper to get badge info from either custom or default badges
   const getBadgeInfoWithCustom = (badgeName: string) => {
     const customBadge = customBadges.find(b => b.name === badgeName);
     if (customBadge) {
@@ -134,20 +118,11 @@ export function TeacherDashboard({ students, onLogout, questions, onUpdateQuesti
     return getBadgeInfo(badgeName);
   };
 
-  // Calculate overall statistics
   const stats = useMemo(() => {
     const totalStudents = students.length;
     const avgTheta = students.reduce((sum, s) => sum + s.averageAbility, 0) / totalStudents || 0;
     const totalTests = students.reduce((sum, s) => sum + s.testsCompleted, 0);
     const totalBadges = students.reduce((sum, s) => sum + s.badges.length, 0);
-
-    console.log('📊 Teacher Dashboard Stats:', {
-      totalStudents,
-      avgTheta,
-      studentAbilities: students.map(s => ({ name: s.name, theta: s.averageAbility })),
-      totalTests,
-      totalBadges
-    });
 
     return {
       totalStudents,
@@ -158,7 +133,6 @@ export function TeacherDashboard({ students, onLogout, questions, onUpdateQuesti
     };
   }, [students]);
 
-  // Theta distribution data for chart
   const thetaDistribution = useMemo(() => {
     const ranges = [
       { range: '< -3.0', min: -Infinity, max: -3.0, count: 0 },
@@ -186,7 +160,6 @@ export function TeacherDashboard({ students, onLogout, questions, onUpdateQuesti
     return ranges.map((r, idx) => ({ id: `theta-${idx}`, name: r.range, siswa: r.count }));
   }, [students]);
 
-  // Level completion data
   const levelCompletion = useMemo(() => {
     const levels = [1, 2, 3, 4, 5, 6];
     return levels.map(level => ({
@@ -197,7 +170,6 @@ export function TeacherDashboard({ students, onLogout, questions, onUpdateQuesti
     }));
   }, [students]);
 
-  // Badge distribution - top 10 badges
   const badgeDistribution = useMemo(() => {
     const badgeCounts: Record<string, number> = {};
     students.forEach(student => {
@@ -212,14 +184,12 @@ export function TeacherDashboard({ students, onLogout, questions, onUpdateQuesti
       .slice(0, 10);
   }, [students]);
 
-  // Top performers
   const topPerformers = useMemo(() => {
     return [...students]
       .sort((a, b) => b.totalScore - a.totalScore)
       .slice(0, 5);
   }, [students]);
 
-  // Sort students
   const sortedStudents = useMemo(() => {
     return [...students].sort((a, b) => {
       let aVal: number | string = 0;
@@ -249,12 +219,12 @@ export function TeacherDashboard({ students, onLogout, questions, onUpdateQuesti
       }
 
       if (typeof aVal === 'string' && typeof bVal === 'string') {
-        return sortOrder === 'asc' 
+        return sortOrder === 'asc'
           ? aVal.localeCompare(bVal)
           : bVal.localeCompare(aVal);
       }
 
-      return sortOrder === 'asc' 
+      return sortOrder === 'asc'
         ? (aVal as number) - (bVal as number)
         : (bVal as number) - (aVal as number);
     });
@@ -274,11 +244,8 @@ export function TeacherDashboard({ students, onLogout, questions, onUpdateQuesti
     return sortOrder === 'asc' ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />;
   };
 
-  const COLORS = ['#3B82F6', '#8B5CF6', '#EC4899', '#F59E0B', '#10B981', '#EF4444'];
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 to-indigo-100">
-      {/* Header */}
       <nav className="bg-white shadow-md">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
@@ -291,12 +258,20 @@ export function TeacherDashboard({ students, onLogout, questions, onUpdateQuesti
                 <p className="text-xs text-gray-500">Mathoria Management System</p>
               </div>
             </div>
-            
+
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-2 px-4 py-2 bg-purple-50 rounded-lg">
                 <Trophy className="w-5 h-5 text-purple-600" />
                 <span className="text-sm font-semibold text-purple-700">Guru</span>
               </div>
+              <button
+                onClick={() => setShowBadgeManager(true)}
+                className="px-4 py-2 text-sm bg-purple-600 text-white hover:bg-purple-700 rounded-lg transition-colors font-medium flex items-center gap-2"
+                title="Kelola badge custom"
+              >
+                <Award className="w-4 h-4" />
+                Kelola Badge
+              </button>
               <button
                 onClick={handleRefreshTheta}
                 className="px-4 py-2 text-sm bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors font-medium"
@@ -316,7 +291,6 @@ export function TeacherDashboard({ students, onLogout, questions, onUpdateQuesti
       </nav>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Overview Statistics */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
           <div className="bg-white rounded-xl p-6 shadow-md border-l-4 border-blue-500">
             <div className="flex items-center justify-between">
@@ -369,7 +343,6 @@ export function TeacherDashboard({ students, onLogout, questions, onUpdateQuesti
           </div>
         </div>
 
-        {/* Tabs */}
         <div className="mb-8">
           <div className="flex items-center gap-4">
             <button
@@ -399,34 +372,29 @@ export function TeacherDashboard({ students, onLogout, questions, onUpdateQuesti
           </div>
         </div>
 
-        {/* Content based on active tab */}
         {activeTab === 'overview' && (
           <>
-            {/* Charts Section */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-              {/* Theta Distribution */}
               <div className="bg-white rounded-xl p-6 shadow-md">
                 <div className="flex items-center gap-2 mb-4">
                   <BarChart3 className="w-5 h-5 text-blue-600" />
                   <h2 className="font-bold text-gray-900">Distribusi Kemampuan (θ)</h2>
                 </div>
                 {students.length > 0 ? (
-                  <ResponsiveContainer width="100%" height={250} key="theta-chart-container">
-                    <BarChart data={thetaDistribution} key="theta-chart">
-                      <CartesianGrid strokeDasharray="3 3" key="theta-grid" />
+                  <ResponsiveContainer width="100%" height={250}>
+                    <BarChart data={thetaDistribution}>
+                      <CartesianGrid strokeDasharray="3 3" />
                       <XAxis
                         dataKey="name"
                         tick={{ fontSize: 11 }}
                         label={{ value: 'Rentang Kemampuan (θ)', position: 'insideBottom', offset: -5, style: { fontSize: 12, fontWeight: 'bold' } }}
-                        key="theta-xaxis"
                       />
                       <YAxis
                         allowDecimals={false}
                         label={{ value: 'Jumlah Siswa', angle: -90, position: 'insideLeft', style: { fontSize: 12, fontWeight: 'bold' } }}
-                        key="theta-yaxis"
                       />
-                      <Tooltip key="theta-tooltip" />
-                      <Bar dataKey="siswa" fill="#3B82F6" key="theta-bar" />
+                      <Tooltip />
+                      <Bar dataKey="siswa" fill="#3B82F6" />
                     </BarChart>
                   </ResponsiveContainer>
                 ) : (
@@ -436,28 +404,25 @@ export function TeacherDashboard({ students, onLogout, questions, onUpdateQuesti
                 )}
               </div>
 
-              {/* Level Completion */}
               <div className="bg-white rounded-xl p-6 shadow-md">
                 <div className="flex items-center gap-2 mb-4">
                   <TrendingUp className="w-5 h-5 text-green-600" />
                   <h2 className="font-bold text-gray-900">Progress per Level</h2>
                 </div>
                 {students.length > 0 ? (
-                  <ResponsiveContainer width="100%" height={250} key="level-chart-container">
-                    <BarChart data={levelCompletion} key="level-chart">
-                      <CartesianGrid strokeDasharray="3 3" key="level-grid" />
+                  <ResponsiveContainer width="100%" height={250}>
+                    <BarChart data={levelCompletion}>
+                      <CartesianGrid strokeDasharray="3 3" />
                       <XAxis
                         dataKey="level"
                         label={{ value: 'Level PISA', position: 'insideBottom', offset: -5, style: { fontSize: 12, fontWeight: 'bold' } }}
-                        key="level-xaxis"
                       />
                       <YAxis
                         allowDecimals={false}
                         label={{ value: 'Jumlah Siswa yang Menyelesaikan', angle: -90, position: 'insideLeft', style: { fontSize: 12, fontWeight: 'bold' } }}
-                        key="level-yaxis"
                       />
-                      <Tooltip key="level-tooltip" />
-                      <Bar dataKey="completed" fill="#10B981" name="Selesai" key="level-bar" />
+                      <Tooltip />
+                      <Bar dataKey="completed" fill="#10B981" name="Selesai" />
                     </BarChart>
                   </ResponsiveContainer>
                 ) : (
@@ -467,7 +432,6 @@ export function TeacherDashboard({ students, onLogout, questions, onUpdateQuesti
                 )}
               </div>
 
-              {/* Top Performers */}
               <div className="bg-white rounded-xl p-6 shadow-md">
                 <div className="flex items-center gap-2 mb-4">
                   <Star className="w-5 h-5 text-amber-600" />
@@ -500,13 +464,12 @@ export function TeacherDashboard({ students, onLogout, questions, onUpdateQuesti
                 )}
               </div>
 
-              {/* Badge Distribution */}
               <div className="bg-white rounded-xl p-6 shadow-md">
                 <div className="flex items-center gap-2 mb-4">
                   <Award className="w-5 h-5 text-purple-600" />
                   <h2 className="font-bold text-gray-900">Top 10 Badge</h2>
                 </div>
-{badgeDistribution.length > 0 ? (
+                {badgeDistribution.length > 0 ? (
                   <div className="overflow-hidden rounded-lg border border-gray-200">
                     <table className="w-full">
                       <thead>
@@ -574,7 +537,6 @@ export function TeacherDashboard({ students, onLogout, questions, onUpdateQuesti
               </div>
             </div>
 
-            {/* Student Table */}
             <div className="bg-white rounded-xl shadow-md overflow-hidden">
               <div className="p-6 border-b border-gray-200">
                 <div className="flex items-center gap-2">
@@ -590,7 +552,7 @@ export function TeacherDashboard({ students, onLogout, questions, onUpdateQuesti
                       <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                         No
                       </th>
-                      <th 
+                      <th
                         className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
                         onClick={() => handleSort('name')}
                       >
@@ -599,7 +561,7 @@ export function TeacherDashboard({ students, onLogout, questions, onUpdateQuesti
                           <SortIcon field="name" />
                         </div>
                       </th>
-                      <th 
+                      <th
                         className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
                         onClick={() => handleSort('theta')}
                       >
@@ -608,7 +570,7 @@ export function TeacherDashboard({ students, onLogout, questions, onUpdateQuesti
                           <SortIcon field="theta" />
                         </div>
                       </th>
-                      <th 
+                      <th
                         className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
                         onClick={() => handleSort('score')}
                       >
@@ -617,7 +579,7 @@ export function TeacherDashboard({ students, onLogout, questions, onUpdateQuesti
                           <SortIcon field="score" />
                         </div>
                       </th>
-                      <th 
+                      <th
                         className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
                         onClick={() => handleSort('level')}
                       >
@@ -626,7 +588,7 @@ export function TeacherDashboard({ students, onLogout, questions, onUpdateQuesti
                           <SortIcon field="level" />
                         </div>
                       </th>
-                      <th 
+                      <th
                         className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
                         onClick={() => handleSort('badges')}
                       >
@@ -653,8 +615,8 @@ export function TeacherDashboard({ students, onLogout, questions, onUpdateQuesti
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div className="flex items-center gap-3">
                               {student.profilePhoto ? (
-                                <img 
-                                  src={student.profilePhoto} 
+                                <img
+                                  src={student.profilePhoto}
                                   alt={student.name}
                                   className="w-8 h-8 rounded-full object-cover border-2 border-blue-200"
                                 />
@@ -709,7 +671,6 @@ export function TeacherDashboard({ students, onLogout, questions, onUpdateQuesti
                           <tr>
                             <td colSpan={8} className="px-6 py-4 bg-gray-50">
                               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                {/* Completed Levels */}
                                 <div>
                                   <h4 className="font-semibold text-gray-900 mb-2">Level Selesai</h4>
                                   <div className="flex flex-wrap gap-1">
@@ -728,7 +689,6 @@ export function TeacherDashboard({ students, onLogout, questions, onUpdateQuesti
                                   </div>
                                 </div>
 
-                                {/* Chapter Accuracy */}
                                 <div>
                                   <h4 className="font-semibold text-gray-900 mb-2">Akurasi per Bab</h4>
                                   <div className="space-y-1 text-xs">
@@ -768,7 +728,6 @@ export function TeacherDashboard({ students, onLogout, questions, onUpdateQuesti
                                   </div>
                                 </div>
 
-                                {/* Badges */}
                                 <div>
                                   <div className="flex items-center justify-between mb-3">
                                     <h4 className="font-semibold text-gray-900">Badge Diraih ({student.badges.length})</h4>
@@ -828,12 +787,10 @@ export function TeacherDashboard({ students, onLogout, questions, onUpdateQuesti
         )}
       </main>
 
-      {/* Badge Manager Modal */}
       {showBadgeManager && (
         <BadgeManager
           onClose={() => {
             setShowBadgeManager(false);
-            // Reload custom badges
             const saved = localStorage.getItem('mathIRT_customBadges');
             if (saved) {
               setCustomBadges(JSON.parse(saved));
@@ -842,61 +799,39 @@ export function TeacherDashboard({ students, onLogout, questions, onUpdateQuesti
         />
       )}
 
-      {/* Badge Edit Modal */}
       {editingBadgesStudent && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setEditingBadgesStudent(null)}>
-          <div
-            className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Header */}
+          <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             <div className="sticky top-0 bg-gradient-to-r from-purple-600 to-indigo-600 text-white p-6 rounded-t-2xl">
               <div className="flex items-center justify-between">
                 <div>
                   <h2 className="text-2xl font-bold">Edit Badge</h2>
                   <p className="text-purple-100 mt-1">{editingBadgesStudent.name}</p>
                 </div>
-                <button
-                  onClick={() => setEditingBadgesStudent(null)}
-                  className="p-2 hover:bg-white/20 rounded-full transition-colors"
-                >
+                <button onClick={() => setEditingBadgesStudent(null)} className="p-2 hover:bg-white/20 rounded-full transition-colors">
                   <X className="w-6 h-6" />
                 </button>
               </div>
             </div>
 
-            {/* Content */}
             <div className="p-6">
-              <div className="mb-4 bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-center justify-between">
+              <div className="mb-4 bg-blue-50 border border-blue-200 rounded-lg p-4">
                 <p className="text-sm text-blue-800">
                   <strong>Petunjuk:</strong> Klik badge untuk menambah/menghapus dari siswa. Badge yang dipilih akan ditandai dengan ✓
                 </p>
-                <button
-                  onClick={() => {
-                    setShowBadgeManager(true);
-                    setEditingBadgesStudent(null);
-                  }}
-                  className="px-3 py-1 bg-purple-600 hover:bg-purple-700 text-white text-xs font-medium rounded-lg transition-colors whitespace-nowrap"
-                >
-                  Kelola Badge
-                </button>
               </div>
 
-              {/* Custom Badges Section */}
               {customBadges.length > 0 && (
                 <div className="mb-4">
                   <h4 className="font-semibold text-purple-900 mb-2 text-sm">Badge Custom ({customBadges.length})</h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                     {customBadges.map(badge => {
                       const isSelected = selectedBadges.includes(badge.name);
-
                       return (
                         <button
                           key={badge.name}
                           onClick={() => toggleBadge(badge.name)}
-                          className={`${badge.color} border-2 rounded-lg px-4 py-3 transition-all hover:scale-105 text-left relative ${
-                            isSelected ? 'ring-4 ring-purple-500 shadow-lg' : 'opacity-60 hover:opacity-100'
-                          }`}
+                          className={`${badge.color} border-2 rounded-lg px-4 py-3 transition-all hover:scale-105 text-left relative ${isSelected ? 'ring-4 ring-purple-500 shadow-lg' : 'opacity-60 hover:opacity-100'}`}
                         >
                           {isSelected && (
                             <div className="absolute top-2 right-2 w-6 h-6 bg-purple-600 rounded-full flex items-center justify-center">
@@ -915,23 +850,18 @@ export function TeacherDashboard({ students, onLogout, questions, onUpdateQuesti
                 </div>
               )}
 
-              {/* Default Badges Section */}
               <div>
                 <h4 className="font-semibold text-gray-900 mb-2 text-sm">Badge Default ({BADGE_ORDER.length})</h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                   {BADGE_ORDER.map(badgeName => {
                     const badgeInfo = BADGE_INFO[badgeName];
                     if (!badgeInfo) return null;
-
                     const isSelected = selectedBadges.includes(badgeName);
-
                     return (
                       <button
                         key={badgeName}
                         onClick={() => toggleBadge(badgeName)}
-                        className={`${badgeInfo.color} border-2 rounded-lg px-4 py-3 transition-all hover:scale-105 text-left relative ${
-                          isSelected ? 'ring-4 ring-purple-500 shadow-lg' : 'opacity-60 hover:opacity-100'
-                        }`}
+                        className={`${badgeInfo.color} border-2 rounded-lg px-4 py-3 transition-all hover:scale-105 text-left relative ${isSelected ? 'ring-4 ring-purple-500 shadow-lg' : 'opacity-60 hover:opacity-100'}`}
                       >
                         {isSelected && (
                           <div className="absolute top-2 right-2 w-6 h-6 bg-purple-600 rounded-full flex items-center justify-center">
@@ -946,25 +876,19 @@ export function TeacherDashboard({ students, onLogout, questions, onUpdateQuesti
                       </button>
                     );
                   })}
+                </div>
               </div>
             </div>
 
-            {/* Footer */}
             <div className="sticky bottom-0 bg-gray-50 border-t border-gray-200 p-6 rounded-b-2xl flex items-center justify-between">
               <div className="text-sm text-gray-600">
                 <strong>{selectedBadges.length}</strong> badge dipilih dari <strong>{BADGE_ORDER.length + customBadges.length}</strong> tersedia
               </div>
               <div className="flex gap-3">
-                <button
-                  onClick={() => setEditingBadgesStudent(null)}
-                  className="px-6 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium rounded-lg transition-colors"
-                >
+                <button onClick={() => setEditingBadgesStudent(null)} className="px-6 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium rounded-lg transition-colors">
                   Batal
                 </button>
-                <button
-                  onClick={handleSaveBadges}
-                  className="px-6 py-2 bg-purple-600 hover:bg-purple-700 text-white font-medium rounded-lg transition-colors"
-                >
+                <button onClick={handleSaveBadges} className="px-6 py-2 bg-purple-600 hover:bg-purple-700 text-white font-medium rounded-lg transition-colors">
                   Simpan Perubahan
                 </button>
               </div>
