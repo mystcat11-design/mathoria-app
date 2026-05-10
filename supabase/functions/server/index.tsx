@@ -24,7 +24,11 @@ app.use('*', logger(console.log));
 const asyncHandler = (fn: any) => {
   return async (c: any) => {
     try {
-      const result = await fn(c);
+      const result = await Promise.resolve(fn(c));
+      if (!result) {
+        console.error('Handler returned null/undefined');
+        return c.json({ success: false, error: "No response from handler" }, 500);
+      }
       return result;
     } catch (error: any) {
       console.error('Route error:', error?.message || error);
@@ -35,10 +39,10 @@ const asyncHandler = (fn: any) => {
 };
 
 // Health check endpoint
-app.get("/make-server-773c0d79/health", (c) => {
+app.get("/make-server-773c0d79/health", asyncHandler(async (c) => {
   console.log('Health check called');
   return c.json({ status: "ok", timestamp: new Date().toISOString() });
-});
+}));
 
 // ========== STUDENT ROUTES ==========
 app.get("/make-server-773c0d79/students", asyncHandler(async (c) => {
@@ -180,41 +184,37 @@ app.put("/make-server-773c0d79/essays/:id/score", asyncHandler(async (c) => {
 
 // 404 handler for unknown routes
 app.notFound((c) => {
+  console.log('404 - Route not found:', c.req.url);
   return c.json({ success: false, error: "Route not found" }, 404);
 });
 
 // Global error handler
 app.onError((err, c) => {
-  console.error('Global error:', err);
+  console.error('Global error:', err?.message || err);
   const errorMessage = err?.message || String(err) || "Internal server error";
   return c.json({ success: false, error: errorMessage }, 500);
 });
 
-// Serve with request timeout protection
-Deno.serve(async (req: Request) => {
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 25000); // 25 second timeout
-
+// Serve with wrapper to guarantee response
+const handler = async (req: Request): Promise<Response> => {
   try {
-    const response = await app.fetch(req, { signal: controller.signal });
-    clearTimeout(timeoutId);
+    console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
+    const response = await app.fetch(req);
+    console.log(`[${new Date().toISOString()}] Response status: ${response.status}`);
     return response;
   } catch (error: any) {
-    clearTimeout(timeoutId);
-    console.error('Request handler error:', error);
-
+    console.error('Fatal server error:', error?.message || error);
     return new Response(
-      JSON.stringify({
-        success: false,
-        error: error.name === 'AbortError' ? 'Request timeout' : 'Server error'
-      }),
+      JSON.stringify({ success: false, error: "Server error" }),
       {
-        status: error.name === 'AbortError' ? 504 : 500,
+        status: 500,
         headers: {
           "Content-Type": "application/json",
-          "Access-Control-Allow-Origin": "*"
+          "Access-Control-Allow-Origin": "*",
         }
       }
     );
   }
-});
+};
+
+Deno.serve(handler);

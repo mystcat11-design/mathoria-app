@@ -1,14 +1,19 @@
 // Wrapper for kv_store with timeout protection
 import * as kv from "./kv_store.tsx";
 
-const TIMEOUT_MS = 20000; // 20 seconds timeout
+const TIMEOUT_MS = 10000; // 10 seconds timeout
 
 async function withTimeout<T>(promise: Promise<T>, timeoutMs: number = TIMEOUT_MS): Promise<T> {
   const timeoutPromise = new Promise<never>((_, reject) => {
     setTimeout(() => reject(new Error('Database operation timeout')), timeoutMs);
   });
 
-  return Promise.race([promise, timeoutPromise]);
+  try {
+    return await Promise.race([promise, timeoutPromise]);
+  } catch (error: any) {
+    console.error('withTimeout error:', error?.message);
+    throw error;
+  }
 }
 
 export async function get(key: string): Promise<any> {
