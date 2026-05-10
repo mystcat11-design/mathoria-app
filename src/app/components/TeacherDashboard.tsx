@@ -9,6 +9,7 @@ import { QuestionBankEditor } from './QuestionBankEditor';
 import { EssayReviewPanel } from './EssayReviewPanel';
 import { ErrorBoundary } from './ErrorBoundary';
 import { chapters } from '../utils/chapterConfig';
+import { BadgeManager, CustomBadge } from './BadgeManager';
 
 interface TeacherDashboardProps {
   students: Student[];
@@ -19,6 +20,14 @@ interface TeacherDashboardProps {
 
 export function TeacherDashboard({ students, onLogout, questions, onUpdateQuestions }: TeacherDashboardProps) {
   const [activeTab, setActiveTab] = useState<'overview' | 'essays' | 'questions'>('overview');
+
+  // Load custom badges
+  React.useEffect(() => {
+    const saved = localStorage.getItem('mathIRT_customBadges');
+    if (saved) {
+      setCustomBadges(JSON.parse(saved));
+    }
+  }, []);
 
   console.log('👩‍🏫 TeacherDashboard received questions:', {
     questionsType: typeof questions,
@@ -31,6 +40,8 @@ export function TeacherDashboard({ students, onLogout, questions, onUpdateQuesti
   const [expandedStudent, setExpandedStudent] = useState<string | null>(null);
   const [editingBadgesStudent, setEditingBadgesStudent] = useState<Student | null>(null);
   const [selectedBadges, setSelectedBadges] = useState<string[]>([]);
+  const [showBadgeManager, setShowBadgeManager] = useState(false);
+  const [customBadges, setCustomBadges] = useState<CustomBadge[]>([]);
 
   const handleRefreshTheta = () => {
     const confirmed = window.confirm(
@@ -112,6 +123,15 @@ export function TeacherDashboard({ students, onLogout, questions, onUpdateQuesti
     } else {
       setSelectedBadges([...selectedBadges, badgeName]);
     }
+  };
+
+  // Helper to get badge info from either custom or default badges
+  const getBadgeInfoWithCustom = (badgeName: string) => {
+    const customBadge = customBadges.find(b => b.name === badgeName);
+    if (customBadge) {
+      return customBadge;
+    }
+    return getBadgeInfo(badgeName);
   };
 
   // Calculate overall statistics
@@ -498,7 +518,7 @@ export function TeacherDashboard({ students, onLogout, questions, onUpdateQuesti
                       </thead>
                       <tbody className="divide-y divide-gray-200">
                         {badgeDistribution.map((badge, index) => {
-                          const badgeInfo = getBadgeInfo(badge.name);
+                          const badgeInfo = getBadgeInfoWithCustom(badge.name);
                           const totalStudents = students.length;
                           const isTopThree = index < 3;
 
@@ -762,7 +782,7 @@ export function TeacherDashboard({ students, onLogout, questions, onUpdateQuesti
                                   <div className="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto pr-2">
                                     {student.badges.length > 0 ? (
                                       student.badges.map(badge => {
-                                        const badgeInfo = getBadgeInfo(badge);
+                                        const badgeInfo = getBadgeInfoWithCustom(badge);
                                         return (
                                           <div
                                             key={badge}
@@ -808,6 +828,20 @@ export function TeacherDashboard({ students, onLogout, questions, onUpdateQuesti
         )}
       </main>
 
+      {/* Badge Manager Modal */}
+      {showBadgeManager && (
+        <BadgeManager
+          onClose={() => {
+            setShowBadgeManager(false);
+            // Reload custom badges
+            const saved = localStorage.getItem('mathIRT_customBadges');
+            if (saved) {
+              setCustomBadges(JSON.parse(saved));
+            }
+          }}
+        />
+      )}
+
       {/* Badge Edit Modal */}
       {editingBadgesStudent && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setEditingBadgesStudent(null)}>
@@ -833,47 +867,92 @@ export function TeacherDashboard({ students, onLogout, questions, onUpdateQuesti
 
             {/* Content */}
             <div className="p-6">
-              <div className="mb-4 bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <div className="mb-4 bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-center justify-between">
                 <p className="text-sm text-blue-800">
                   <strong>Petunjuk:</strong> Klik badge untuk menambah/menghapus dari siswa. Badge yang dipilih akan ditandai dengan ✓
                 </p>
+                <button
+                  onClick={() => {
+                    setShowBadgeManager(true);
+                    setEditingBadgesStudent(null);
+                  }}
+                  className="px-3 py-1 bg-purple-600 hover:bg-purple-700 text-white text-xs font-medium rounded-lg transition-colors whitespace-nowrap"
+                >
+                  Kelola Badge
+                </button>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                {BADGE_ORDER.map(badgeName => {
-                  const badgeInfo = BADGE_INFO[badgeName];
-                  if (!badgeInfo) return null;
+              {/* Custom Badges Section */}
+              {customBadges.length > 0 && (
+                <div className="mb-4">
+                  <h4 className="font-semibold text-purple-900 mb-2 text-sm">Badge Custom ({customBadges.length})</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                    {customBadges.map(badge => {
+                      const isSelected = selectedBadges.includes(badge.name);
 
-                  const isSelected = selectedBadges.includes(badgeName);
+                      return (
+                        <button
+                          key={badge.name}
+                          onClick={() => toggleBadge(badge.name)}
+                          className={`${badge.color} border-2 rounded-lg px-4 py-3 transition-all hover:scale-105 text-left relative ${
+                            isSelected ? 'ring-4 ring-purple-500 shadow-lg' : 'opacity-60 hover:opacity-100'
+                          }`}
+                        >
+                          {isSelected && (
+                            <div className="absolute top-2 right-2 w-6 h-6 bg-purple-600 rounded-full flex items-center justify-center">
+                              <span className="text-white text-sm font-bold">✓</span>
+                            </div>
+                          )}
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="text-2xl">{badge.icon}</span>
+                            <span className="text-sm font-semibold">{badge.name}</span>
+                          </div>
+                          <p className="text-xs opacity-80">{badge.description}</p>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
 
-                  return (
-                    <button
-                      key={badgeName}
-                      onClick={() => toggleBadge(badgeName)}
-                      className={`${badgeInfo.color} border-2 rounded-lg px-4 py-3 transition-all hover:scale-105 text-left relative ${
-                        isSelected ? 'ring-4 ring-purple-500 shadow-lg' : 'opacity-60 hover:opacity-100'
-                      }`}
-                    >
-                      {isSelected && (
-                        <div className="absolute top-2 right-2 w-6 h-6 bg-purple-600 rounded-full flex items-center justify-center">
-                          <span className="text-white text-sm font-bold">✓</span>
+              {/* Default Badges Section */}
+              <div>
+                <h4 className="font-semibold text-gray-900 mb-2 text-sm">Badge Default ({BADGE_ORDER.length})</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {BADGE_ORDER.map(badgeName => {
+                    const badgeInfo = BADGE_INFO[badgeName];
+                    if (!badgeInfo) return null;
+
+                    const isSelected = selectedBadges.includes(badgeName);
+
+                    return (
+                      <button
+                        key={badgeName}
+                        onClick={() => toggleBadge(badgeName)}
+                        className={`${badgeInfo.color} border-2 rounded-lg px-4 py-3 transition-all hover:scale-105 text-left relative ${
+                          isSelected ? 'ring-4 ring-purple-500 shadow-lg' : 'opacity-60 hover:opacity-100'
+                        }`}
+                      >
+                        {isSelected && (
+                          <div className="absolute top-2 right-2 w-6 h-6 bg-purple-600 rounded-full flex items-center justify-center">
+                            <span className="text-white text-sm font-bold">✓</span>
+                          </div>
+                        )}
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="text-2xl">{badgeInfo.icon}</span>
+                          <span className="text-sm font-semibold">{badgeName}</span>
                         </div>
-                      )}
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="text-2xl">{badgeInfo.icon}</span>
-                        <span className="text-sm font-semibold">{badgeName}</span>
-                      </div>
-                      <p className="text-xs opacity-80">{badgeInfo.description}</p>
-                    </button>
-                  );
-                })}
+                        <p className="text-xs opacity-80">{badgeInfo.description}</p>
+                      </button>
+                    );
+                  })}
               </div>
             </div>
 
             {/* Footer */}
             <div className="sticky bottom-0 bg-gray-50 border-t border-gray-200 p-6 rounded-b-2xl flex items-center justify-between">
               <div className="text-sm text-gray-600">
-                <strong>{selectedBadges.length}</strong> badge dipilih dari <strong>{BADGE_ORDER.length}</strong> tersedia
+                <strong>{selectedBadges.length}</strong> badge dipilih dari <strong>{BADGE_ORDER.length + customBadges.length}</strong> tersedia
               </div>
               <div className="flex gap-3">
                 <button
