@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Question } from '../utils/irtEngine';
-import { Edit, Trash2, Plus, X, FileQuestion, Filter, Download, Upload, FileText, Cloud, CloudOff } from 'lucide-react';
+import { Edit, Trash2, Plus, X, FileQuestion, Filter, Download, Upload, FileText, Cloud, CloudOff, Check, Loader } from 'lucide-react';
 import { MathInput } from './MathInput';
 import { FormattedMath } from './FormattedMath';
 import { chapters, getQuestionChapters, questionMatchesChapter } from '../utils/chapterConfig';
@@ -22,6 +22,51 @@ export function QuestionBankEditor({ questions, onUpdateQuestions }: QuestionBan
   const [editingQuestion, setEditingQuestion] = useState<Question | null>(null);
   const [isSyncing, setIsSyncing] = useState(false);
   const [lastSyncTime, setLastSyncTime] = useState<string | null>(null);
+  const [autoSaveStatus, setAutoSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
+  const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Auto-save to cloud when questions change
+  useEffect(() => {
+    // Clear existing timer
+    if (autoSaveTimerRef.current) {
+      clearTimeout(autoSaveTimerRef.current);
+    }
+
+    // Don't auto-save if no questions or on initial load
+    if (!questions || questions.length === 0) {
+      return;
+    }
+
+    // Set new timer - auto-save after 3 seconds of no changes
+    autoSaveTimerRef.current = setTimeout(async () => {
+      setAutoSaveStatus('saving');
+      try {
+        const success = await saveQuestions(questions);
+        if (success) {
+          setAutoSaveStatus('saved');
+          const now = new Date().toLocaleString('id-ID');
+          setLastSyncTime(now);
+          console.log('✅ Auto-saved to cloud');
+
+          // Reset status after 3 seconds
+          setTimeout(() => setAutoSaveStatus('idle'), 3000);
+        } else {
+          setAutoSaveStatus('error');
+          setTimeout(() => setAutoSaveStatus('idle'), 5000);
+        }
+      } catch (error) {
+        setAutoSaveStatus('error');
+        setTimeout(() => setAutoSaveStatus('idle'), 5000);
+      }
+    }, 3000); // 3 second debounce
+
+    // Cleanup
+    return () => {
+      if (autoSaveTimerRef.current) {
+        clearTimeout(autoSaveTimerRef.current);
+      }
+    };
+  }, [questions]);
 
   // Safety check - after all hooks
   if (!questions) {
@@ -311,14 +356,38 @@ export function QuestionBankEditor({ questions, onUpdateQuestions }: QuestionBan
           <div className="flex items-center gap-3">
             <FileQuestion className="w-5 h-5 text-purple-600" />
             <h2 className="font-bold text-gray-900">Bank Soal ({filteredQuestions.length} soal)</h2>
+
+            {/* Local Save Status */}
             <span className="px-2 py-1 bg-green-100 text-green-700 text-xs font-medium rounded-full flex items-center gap-1">
               <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
-              Otomatis Tersimpan (Lokal)
+              Tersimpan Lokal
             </span>
-            {lastSyncTime && (
+
+            {/* Auto-Save Cloud Status */}
+            {autoSaveStatus === 'saving' && (
               <span className="px-2 py-1 bg-blue-100 text-blue-700 text-xs font-medium rounded-full flex items-center gap-1">
+                <Loader className="w-3 h-3 animate-spin" />
+                Menyimpan ke Cloud...
+              </span>
+            )}
+            {autoSaveStatus === 'saved' && (
+              <span className="px-2 py-1 bg-emerald-100 text-emerald-700 text-xs font-medium rounded-full flex items-center gap-1">
+                <Check className="w-3 h-3" />
+                Tersimpan di Cloud
+              </span>
+            )}
+            {autoSaveStatus === 'error' && (
+              <span className="px-2 py-1 bg-red-100 text-red-700 text-xs font-medium rounded-full flex items-center gap-1">
+                <X className="w-3 h-3" />
+                Error Auto-Save
+              </span>
+            )}
+
+            {/* Last Sync Time */}
+            {lastSyncTime && autoSaveStatus === 'idle' && (
+              <span className="px-2 py-1 bg-slate-100 text-slate-700 text-xs font-medium rounded-full flex items-center gap-1">
                 <Cloud className="w-3 h-3" />
-                Cloud: {lastSyncTime}
+                Terakhir: {lastSyncTime}
               </span>
             )}
           </div>
