@@ -1,0 +1,117 @@
+12:10:52.406 Running build in Washington, D.C., USA (East) – iad1
+12:10:52.406 Build machine configuration: 2 cores, 8 GB
+12:10:52.512 Cloning github.com/mystcat11-design/mathoria-app (Branch: main, Commit: b4d0429)
+12:10:52.513 Previous build caches not available.
+12:10:52.759 Cloning completed: 246.000ms
+12:10:53.045 Running "vercel build"
+12:10:53.738 Vercel CLI 51.6.1
+12:10:54.345 Warning: Detected "engines": { "node": ">=18.0.0" } in your `package.json` that will automatically upgrade when a new major Node.js Version is released. Learn More: https://vercel.link/node-version
+12:10:54.348 Running "install" command: `npm instal`...
+12:11:18.306 
+12:11:18.307 added 304 packages, and audited 305 packages in 24s
+12:11:18.307 
+12:11:18.307 37 packages are looking for funding
+12:11:18.308   run `npm fund` for details
+12:11:18.308 
+12:11:18.308 found 0 vulnerabilities
+12:11:18.547 
+12:11:18.547 > mathoria-app@1.0.0 build
+12:11:18.548 > tsc && vite build
+12:11:18.548 
+12:11:23.798 App.tsx(2,31): error TS2307: Cannot find module './components/QuizInterface' or its corresponding type declarations.
+12:11:23.799 App.tsx(3,36): error TS2307: Cannot find module './components/EssayQuizInterface' or its corresponding type declarations.
+12:11:23.799 App.tsx(4,29): error TS2307: Cannot find module './components/Leaderboard' or its corresponding type declarations.
+12:11:23.799 App.tsx(5,27): error TS2307: Cannot find module './components/Dashboard' or its corresponding type declarations.
+12:11:23.800 App.tsx(6,29): error TS2307: Cannot find module './components/LoginScreen' or its corresponding type declarations.
+12:11:23.800 App.tsx(7,41): error TS2307: Cannot find module './components/AchievementNotification' or its corresponding type declarations.
+12:11:23.801 App.tsx(8,31): error TS2307: Cannot find module './components/TutorialModal' or its corresponding type declarations.
+12:11:23.801 App.tsx(9,25): error TS2307: Cannot find module './components/Profile' or its corresponding type declarations.
+12:11:23.801 App.tsx(10,34): error TS2307: Cannot find module './components/TeacherDashboard' or its corresponding type declarations.
+12:11:23.801 App.tsx(12,29): error TS2307: Cannot find module './utils/badgeChecker' or its corresponding type declarations.
+12:11:23.801 App.tsx(13,40): error TS2307: Cannot find module './utils/irtEngine' or its corresponding type declarations.
+12:11:23.802 App.tsx(14,33): error TS2307: Cannot find module './utils/supabaseClient' or its corresponding type declarations.
+12:11:23.802 App.tsx(15,32): error TS2307: Cannot find module 'sonner@2.0.3' or its corresponding type declarations.
+12:11:23.802 src/App.tsx(15,32): error TS2307: Cannot find module 'sonner@2.0.3' or its corresponding type declarations.
+12:11:23.802 src/App.tsx(138,26): error TS2345: Argument of type 'Question[]' is not assignable to parameter of type 'SetStateAction<Question[]>'.
+12:11:23.802   Type 'import("/vercel/path0/src/utils/supabaseClient").Question[]' is not assignable to type 'import("/vercel/path0/src/utils/irtEngine").Question[]'.
+12:11:23.802     Type 'Question' is missing the following properties from type 'Question': question, pisaLevelName, explanation
+12:11:23.802 src/App.tsx(141,48): error TS2345: Argument of type 'import("/vercel/path0/src/utils/irtEngine").Question[]' is not assignable to parameter of type 'import("/vercel/path0/src/utils/supabaseClient").Question[]'.
+12:11:23.803   Type 'import("/vercel/path0/src/utils/irtEngine").Question' is not assignable to type 'import("/vercel/path0/src/utils/supabaseClient").Question'.
+12:11:23.803     Property 'text' is optional in type 'Question' but required in type 'Question'.
+12:11:23.803 src/App.tsx(290,26): error TS2554: Expected 3 arguments, but got 2.
+12:11:23.803 src/App.tsx(409,45): error TS2488: Type 'BadgeCheckResult' must have a '[Symbol.iterator]()' method that returns an iterator.
+12:11:23.803 src/App.tsx(443,22): error TS2339: Property 'length' does not exist on type 'BadgeCheckResult'.
+12:11:23.803 src/App.tsx(444,20): error TS2345: Argument of type 'BadgeCheckResult' is not assignable to parameter of type 'SetStateAction<string[]>'.
+12:11:23.804 src/App.tsx(463,34): error TS2345: Argument of type 'import("/vercel/path0/src/utils/irtEngine").Question[]' is not assignable to parameter of type 'import("/vercel/path0/src/utils/supabaseClient").Question[]'.
+12:11:23.804   Type 'import("/vercel/path0/src/utils/irtEngine").Question' is not assignable to type 'import("/vercel/path0/src/utils/supabaseClient").Question'.
+12:11:23.804     Property 'text' is optional in type 'Question' but required in type 'Question'.
+12:11:23.804 src/components/AchievementNotification.tsx(3,24): error TS2307: Cannot find module 'motion/react' or its corresponding type declarations.
+12:11:23.804 src/components/ui/accordion.tsx(4,37): error TS2307: Cannot find module '@radix-ui/react-accordion@1.2.3' or its corresponding type declarations.
+12:11:23.806 src/components/ui/accordion.tsx(5,33): error TS2307: Cannot find module 'lucide-react@0.487.0' or its corresponding type declarations.
+12:11:23.806 src/components/ui/alert-dialog.tsx(4,39): error TS2307: Cannot find module '@radix-ui/react-alert-dialog@1.1.6' or its corresponding type declarations.
+12:11:23.807 src/components/ui/alert.tsx(2,40): error TS2307: Cannot find module 'class-variance-authority@0.7.1' or its corresponding type declarations.
+12:11:23.807 src/components/ui/aspect-ratio.tsx(3,39): error TS2307: Cannot find module '@radix-ui/react-aspect-ratio@1.1.2' or its corresponding type declarations.
+12:11:23.807 src/components/ui/avatar.tsx(4,34): error TS2307: Cannot find module '@radix-ui/react-avatar@1.1.3' or its corresponding type declarations.
+12:11:23.807 src/components/ui/badge.tsx(2,22): error TS2307: Cannot find module '@radix-ui/react-slot@1.1.2' or its corresponding type declarations.
+12:11:23.807 src/components/ui/badge.tsx(3,40): error TS2307: Cannot find module 'class-variance-authority@0.7.1' or its corresponding type declarations.
+12:11:23.808 src/components/ui/breadcrumb.tsx(2,22): error TS2307: Cannot find module '@radix-ui/react-slot@1.1.2' or its corresponding type declarations.
+12:11:23.808 src/components/ui/breadcrumb.tsx(3,46): error TS2307: Cannot find module 'lucide-react@0.487.0' or its corresponding type declarations.
+12:11:23.808 src/components/ui/button.tsx(2,22): error TS2307: Cannot find module '@radix-ui/react-slot@1.1.2' or its corresponding type declarations.
+12:11:23.808 src/components/ui/button.tsx(3,40): error TS2307: Cannot find module 'class-variance-authority@0.7.1' or its corresponding type declarations.
+12:11:23.810 src/components/ui/calendar.tsx(4,43): error TS2307: Cannot find module 'lucide-react@0.487.0' or its corresponding type declarations.
+12:11:23.810 src/components/ui/calendar.tsx(5,27): error TS2307: Cannot find module 'react-day-picker@8.10.1' or its corresponding type declarations.
+12:11:23.810 src/components/ui/carousel.tsx(6,8): error TS2307: Cannot find module 'embla-carousel-react@8.6.0' or its corresponding type declarations.
+12:11:23.810 src/components/ui/carousel.tsx(7,39): error TS2307: Cannot find module 'lucide-react@0.487.0' or its corresponding type declarations.
+12:11:23.811 src/components/ui/chart.tsx(4,36): error TS2307: Cannot find module 'recharts@2.15.2' or its corresponding type declarations.
+12:11:23.811 src/components/ui/checkbox.tsx(4,36): error TS2307: Cannot find module '@radix-ui/react-checkbox@1.1.4' or its corresponding type declarations.
+12:11:23.811 src/components/ui/checkbox.tsx(5,27): error TS2307: Cannot find module 'lucide-react@0.487.0' or its corresponding type declarations.
+12:11:23.811 src/components/ui/collapsible.tsx(3,39): error TS2307: Cannot find module '@radix-ui/react-collapsible@1.1.3' or its corresponding type declarations.
+12:11:23.811 src/components/ui/command.tsx(4,45): error TS2307: Cannot find module 'cmdk@1.1.1' or its corresponding type declarations.
+12:11:23.811 src/components/ui/command.tsx(5,28): error TS2307: Cannot find module 'lucide-react@0.487.0' or its corresponding type declarations.
+12:11:23.811 src/components/ui/context-menu.tsx(4,39): error TS2307: Cannot find module '@radix-ui/react-context-menu@2.2.6' or its corresponding type declarations.
+12:11:23.811 src/components/ui/context-menu.tsx(5,57): error TS2307: Cannot find module 'lucide-react@0.487.0' or its corresponding type declarations.
+12:11:23.811 src/components/ui/dialog.tsx(4,34): error TS2307: Cannot find module '@radix-ui/react-dialog@1.1.6' or its corresponding type declarations.
+12:11:23.811 src/components/ui/dialog.tsx(5,23): error TS2307: Cannot find module 'lucide-react@0.487.0' or its corresponding type declarations.
+12:11:23.812 src/components/ui/drawer.tsx(4,43): error TS2307: Cannot find module 'vaul@1.1.2' or its corresponding type declarations.
+12:11:23.812 src/components/ui/dropdown-menu.tsx(4,40): error TS2307: Cannot find module '@radix-ui/react-dropdown-menu@2.1.6' or its corresponding type declarations.
+12:11:23.812 src/components/ui/dropdown-menu.tsx(5,57): error TS2307: Cannot find module 'lucide-react@0.487.0' or its corresponding type declarations.
+12:11:23.812 src/components/ui/form.tsx(4,33): error TS2307: Cannot find module '@radix-ui/react-label@2.1.2' or its corresponding type declarations.
+12:11:23.812 src/components/ui/form.tsx(5,22): error TS2307: Cannot find module '@radix-ui/react-slot@1.1.2' or its corresponding type declarations.
+12:11:23.812 src/components/ui/form.tsx(14,8): error TS2307: Cannot find module 'react-hook-form@7.55.0' or its corresponding type declarations.
+12:11:23.812 src/components/ui/hover-card.tsx(4,37): error TS2307: Cannot find module '@radix-ui/react-hover-card@1.1.6' or its corresponding type declarations.
+12:11:23.812 src/components/ui/input-otp.tsx(4,43): error TS2307: Cannot find module 'input-otp@1.4.2' or its corresponding type declarations.
+12:11:23.812 src/components/ui/input-otp.tsx(5,27): error TS2307: Cannot find module 'lucide-react@0.487.0' or its corresponding type declarations.
+12:11:23.812 src/components/ui/input-otp.tsx(47,61): error TS2339: Property 'slots' does not exist on type 'unknown'.
+12:11:23.812 src/components/ui/label.tsx(4,33): error TS2307: Cannot find module '@radix-ui/react-label@2.1.2' or its corresponding type declarations.
+12:11:23.812 src/components/ui/menubar.tsx(4,35): error TS2307: Cannot find module '@radix-ui/react-menubar@1.1.6' or its corresponding type declarations.
+12:11:23.812 src/components/ui/menubar.tsx(5,57): error TS2307: Cannot find module 'lucide-react@0.487.0' or its corresponding type declarations.
+12:11:23.812 src/components/ui/navigation-menu.tsx(2,42): error TS2307: Cannot find module '@radix-ui/react-navigation-menu@1.2.5' or its corresponding type declarations.
+12:11:23.812 src/components/ui/navigation-menu.tsx(3,21): error TS2307: Cannot find module 'class-variance-authority@0.7.1' or its corresponding type declarations.
+12:11:23.812 src/components/ui/navigation-menu.tsx(4,33): error TS2307: Cannot find module 'lucide-react@0.487.0' or its corresponding type declarations.
+12:11:23.813 src/components/ui/pagination.tsx(6,8): error TS2307: Cannot find module 'lucide-react@0.487.0' or its corresponding type declarations.
+12:11:23.813 src/components/ui/popover.tsx(4,35): error TS2307: Cannot find module '@radix-ui/react-popover@1.1.6' or its corresponding type declarations.
+12:11:23.813 src/components/ui/progress.tsx(4,36): error TS2307: Cannot find module '@radix-ui/react-progress@1.1.2' or its corresponding type declarations.
+12:11:23.813 src/components/ui/radio-group.tsx(4,38): error TS2307: Cannot find module '@radix-ui/react-radio-group@1.2.3' or its corresponding type declarations.
+12:11:23.813 src/components/ui/radio-group.tsx(5,28): error TS2307: Cannot find module 'lucide-react@0.487.0' or its corresponding type declarations.
+12:11:23.813 src/components/ui/resizable.tsx(4,34): error TS2307: Cannot find module 'lucide-react@0.487.0' or its corresponding type declarations.
+12:11:23.813 src/components/ui/resizable.tsx(5,37): error TS2307: Cannot find module 'react-resizable-panels@2.1.7' or its corresponding type declarations.
+12:11:23.813 src/components/ui/scroll-area.tsx(4,38): error TS2307: Cannot find module '@radix-ui/react-scroll-area@1.2.3' or its corresponding type declarations.
+12:11:23.813 src/components/ui/select.tsx(4,34): error TS2307: Cannot find module '@radix-ui/react-select@2.1.6' or its corresponding type declarations.
+12:11:23.814 src/components/ui/select.tsx(9,8): error TS2307: Cannot find module 'lucide-react@0.487.0' or its corresponding type declarations.
+12:11:23.814 src/components/ui/separator.tsx(4,37): error TS2307: Cannot find module '@radix-ui/react-separator@1.1.2' or its corresponding type declarations.
+12:11:23.814 src/components/ui/sheet.tsx(4,33): error TS2307: Cannot find module '@radix-ui/react-dialog@1.1.6' or its corresponding type declarations.
+12:11:23.814 src/components/ui/sheet.tsx(5,23): error TS2307: Cannot find module 'lucide-react@0.487.0' or its corresponding type declarations.
+12:11:23.814 src/components/ui/sidebar.tsx(4,22): error TS2307: Cannot find module '@radix-ui/react-slot@1.1.2' or its corresponding type declarations.
+12:11:23.814 src/components/ui/sidebar.tsx(5,35): error TS2307: Cannot find module 'class-variance-authority@0.7.1' or its corresponding type declarations.
+12:11:23.814 src/components/ui/sidebar.tsx(6,31): error TS2307: Cannot find module 'lucide-react@0.487.0' or its corresponding type declarations.
+12:11:23.814 src/components/ui/slider.tsx(4,34): error TS2307: Cannot find module '@radix-ui/react-slider@1.2.3' or its corresponding type declarations.
+12:11:23.814 src/components/ui/sonner.tsx(3,26): error TS2307: Cannot find module 'next-themes@0.4.6' or its corresponding type declarations.
+12:11:23.814 src/components/ui/sonner.tsx(4,49): error TS2307: Cannot find module 'sonner@2.0.3' or its corresponding type declarations.
+12:11:23.814 src/components/ui/switch.tsx(4,34): error TS2307: Cannot find module '@radix-ui/react-switch@1.1.3' or its corresponding type declarations.
+12:11:23.814 src/components/ui/tabs.tsx(4,32): error TS2307: Cannot find module '@radix-ui/react-tabs@1.1.3' or its corresponding type declarations.
+12:11:23.814 src/components/ui/toggle-group.tsx(4,39): error TS2307: Cannot find module '@radix-ui/react-toggle-group@1.1.2' or its corresponding type declarations.
+12:11:23.814 src/components/ui/toggle-group.tsx(5,35): error TS2307: Cannot find module 'class-variance-authority@0.7.1' or its corresponding type declarations.
+12:11:23.814 src/components/ui/toggle.tsx(4,34): error TS2307: Cannot find module '@radix-ui/react-toggle@1.1.2' or its corresponding type declarations.
+12:11:23.814 src/components/ui/toggle.tsx(5,40): error TS2307: Cannot find module 'class-variance-authority@0.7.1' or its corresponding type declarations.
+12:11:23.814 src/components/ui/tooltip.tsx(4,35): error TS2307: Cannot find module '@radix-ui/react-tooltip@1.1.8' or its corresponding type declarations.
+12:11:23.838 Error: Command "npm run build" exited with 2
