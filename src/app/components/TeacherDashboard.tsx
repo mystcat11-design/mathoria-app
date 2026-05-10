@@ -451,15 +451,13 @@ export function TeacherDashboard({ students, onLogout, questions, onUpdateQuesti
                         <tr className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white">
                           <th className="px-4 py-3 text-left text-sm font-semibold w-16">Rank</th>
                           <th className="px-4 py-3 text-left text-sm font-semibold">Nama Badge</th>
-                          <th className="px-4 py-3 text-center text-sm font-semibold w-24">Jumlah</th>
-                          <th className="px-4 py-3 text-left text-sm font-semibold w-56">Progress</th>
+                          <th className="px-4 py-3 text-center text-sm font-semibold w-32">Penerima</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-200">
                         {badgeDistribution.map((badge, index) => {
                           const badgeInfo = getBadgeInfo(badge.name);
-                          const maxCount = badgeDistribution[0]?.count || 1;
-                          const percentage = (badge.count / maxCount) * 100;
+                          const totalStudents = students.length;
                           const isTopThree = index < 3;
 
                           return (
@@ -492,21 +490,11 @@ export function TeacherDashboard({ students, onLogout, questions, onUpdateQuesti
                                 </div>
                               </td>
                               <td className="px-4 py-3 text-center">
-                                <span className="inline-flex items-center justify-center w-12 h-12 rounded-lg bg-gradient-to-br from-purple-100 to-indigo-100 border-2 border-purple-300 font-bold text-purple-700">
-                                  {badge.count}
-                                </span>
-                              </td>
-                              <td className="px-4 py-3">
-                                <div className="flex items-center gap-2">
-                                  <div className="flex-1 bg-gray-200 rounded-full h-3 overflow-hidden">
-                                    <div
-                                      className="h-full bg-gradient-to-r from-purple-500 to-indigo-600 rounded-full transition-all duration-500"
-                                      style={{ width: `${percentage}%` }}
-                                    />
-                                  </div>
-                                  <span className="text-xs font-medium text-gray-600 w-12 text-right">
-                                    {percentage.toFixed(0)}%
+                                <div className="flex flex-col items-center gap-1">
+                                  <span className="inline-flex items-center justify-center px-4 py-2 rounded-lg bg-gradient-to-br from-purple-100 to-indigo-100 border-2 border-purple-300 font-bold text-purple-700">
+                                    {badge.count}/{totalStudents}
                                   </span>
+                                  <span className="text-xs text-gray-500">siswa</span>
                                 </div>
                               </td>
                             </tr>
