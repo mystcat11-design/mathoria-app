@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { Question } from '../utils/irtEngine';
-import { Edit, Trash2, Plus, X, FileQuestion, Filter, Download, Upload, FileText } from 'lucide-react';
+import { Edit, Trash2, Plus, X, FileQuestion, Filter, Download, Upload, FileText, Cloud, CloudOff } from 'lucide-react';
 import { MathInput } from './MathInput';
 import { FormattedMath } from './FormattedMath';
 import { chapters, getQuestionChapters, questionMatchesChapter } from '../utils/chapterConfig';
 import { toast } from 'sonner@2.0.3';
+import { saveQuestions, getQuestions } from '../utils/supabaseClient';
 
 interface QuestionBankEditorProps {
   questions: Question[];
@@ -19,6 +20,8 @@ export function QuestionBankEditor({ questions, onUpdateQuestions }: QuestionBan
   const [filterTopic, setFilterTopic] = useState<string>('all');
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingQuestion, setEditingQuestion] = useState<Question | null>(null);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [lastSyncTime, setLastSyncTime] = useState<string | null>(null);
 
   // Safety check - after all hooks
   if (!questions) {
@@ -257,6 +260,49 @@ export function QuestionBankEditor({ questions, onUpdateQuestions }: QuestionBan
     event.target.value = '';
   };
 
+  const handleSaveToCloud = async () => {
+    setIsSyncing(true);
+    try {
+      const success = await saveQuestions(questions);
+      if (success) {
+        const now = new Date().toLocaleString('id-ID');
+        setLastSyncTime(now);
+        toast.success(`✅ ${questions.length} soal berhasil disimpan ke cloud!`);
+      } else {
+        toast.error('❌ Gagal menyimpan ke cloud. Coba lagi nanti.');
+      }
+    } catch (error) {
+      toast.error('❌ Error saat menyimpan ke cloud');
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
+  const handleLoadFromCloud = async () => {
+    const confirmLoad = confirm(
+      'Muat soal dari cloud? Ini akan MENGGANTI semua soal lokal dengan versi cloud. Lanjutkan?'
+    );
+
+    if (!confirmLoad) return;
+
+    setIsSyncing(true);
+    try {
+      const cloudQuestions = await getQuestions();
+      if (cloudQuestions && cloudQuestions.length > 0) {
+        onUpdateQuestions(cloudQuestions);
+        const now = new Date().toLocaleString('id-ID');
+        setLastSyncTime(now);
+        toast.success(`✅ Berhasil memuat ${cloudQuestions.length} soal dari cloud!`);
+      } else {
+        toast.info('ℹ️ Tidak ada soal di cloud atau sedang offline');
+      }
+    } catch (error) {
+      toast.error('❌ Error saat memuat dari cloud');
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
   return (
     <div className="bg-white rounded-xl shadow-md overflow-hidden mt-8">
       {/* Header */}
@@ -267,10 +313,46 @@ export function QuestionBankEditor({ questions, onUpdateQuestions }: QuestionBan
             <h2 className="font-bold text-gray-900">Bank Soal ({filteredQuestions.length} soal)</h2>
             <span className="px-2 py-1 bg-green-100 text-green-700 text-xs font-medium rounded-full flex items-center gap-1">
               <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
-              Otomatis Tersimpan
+              Otomatis Tersimpan (Lokal)
             </span>
+            {lastSyncTime && (
+              <span className="px-2 py-1 bg-blue-100 text-blue-700 text-xs font-medium rounded-full flex items-center gap-1">
+                <Cloud className="w-3 h-3" />
+                Cloud: {lastSyncTime}
+              </span>
+            )}
           </div>
           <div className="flex items-center gap-2">
+            {/* Save to Cloud Button */}
+            <button
+              onClick={handleSaveToCloud}
+              disabled={isSyncing}
+              className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              title="Simpan semua soal ke cloud (Supabase)"
+            >
+              {isSyncing ? (
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+              ) : (
+                <Cloud className="w-4 h-4" />
+              )}
+              Simpan ke Cloud
+            </button>
+
+            {/* Load from Cloud Button */}
+            <button
+              onClick={handleLoadFromCloud}
+              disabled={isSyncing}
+              className="flex items-center gap-2 px-4 py-2 bg-sky-600 text-white rounded-lg hover:bg-sky-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              title="Muat soal dari cloud (Supabase)"
+            >
+              {isSyncing ? (
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+              ) : (
+                <CloudOff className="w-4 h-4" />
+              )}
+              Muat dari Cloud
+            </button>
+
             {/* Export Button */}
             <button
               onClick={handleExport}
