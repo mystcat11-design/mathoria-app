@@ -1,28 +1,22 @@
 import { Hono } from "npm:hono";
 import { cors } from "npm:hono/cors";
-import { logger } from "npm:hono/logger";
 import * as kv from "./kv_wrapper.tsx";
+
 const app = new Hono();
 
-// Enable CORS for all routes
+// CORS middleware
 app.use("*", cors({
   origin: "*",
   allowHeaders: ["*"],
   allowMethods: ["*"],
-  credentials: false,
 }));
 
-// Error handler wrapper - guarantees a Response
-const asyncHandler = (fn: any) => {
-  return async (c: any) => {
-    try {
-      const result = await fn(c);
-      return result;
-    } catch (error: any) {
-      console.error('Route error:', error?.message);
-      return c.json({ success: false, error: "Internal error" }, 500);
-    }
-  };
+// Simple handler wrapper
+const asyncHandler = (fn: any) => (c: any) => {
+  return Promise.resolve(fn(c)).catch((error: any) => {
+    console.error('Error:', error?.message);
+    return c.json({ success: false, error: "Error" }, 500);
+  });
 };
 
 // Health check endpoint
@@ -180,21 +174,29 @@ app.onError((err, c) => {
   return c.json({ success: false, error: "Server error" }, 500);
 });
 
-// Serve with error boundary
-Deno.serve(async (req: Request) => {
-  try {
-    return await app.fetch(req);
-  } catch (error: any) {
-    console.error('Server error:', error?.message);
-    return new Response(
-      JSON.stringify({ success: false, error: "Server error" }),
-      {
-        status: 500,
-        headers: {
-          "Content-Type": "application/json",
-          "Access-Control-Allow-Origin": "*"
+// Serve with timeout protection
+Deno.serve((req: Request) => {
+  const timeout = setTimeout(() => {
+    console.error('Request timeout');
+  }, 25000);
+
+  return app.fetch(req)
+    .then((response) => {
+      clearTimeout(timeout);
+      return response;
+    })
+    .catch((error: any) => {
+      clearTimeout(timeout);
+      console.error('Server error:', error?.message);
+      return new Response(
+        JSON.stringify({ success: false, error: "Server error" }),
+        {
+          status: 500,
+          headers: {
+            "Content-Type": "application/json",
+            "Access-Control-Allow-Origin": "*"
+          }
         }
-      }
-    );
-  }
+      );
+    });
 });
