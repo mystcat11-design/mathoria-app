@@ -20,7 +20,7 @@ export async function get(key: string): Promise<any> {
   try {
     return await withTimeout(kv.get(key));
   } catch (error: any) {
-    console.error('KV get error:', key, error.message);
+    console.error('KV get error:', key, error?.message);
     return null;
   }
 }
@@ -29,8 +29,8 @@ export async function set(key: string, value: any): Promise<void> {
   try {
     await withTimeout(kv.set(key, value));
   } catch (error: any) {
-    console.error('KV set error:', key, error.message);
-    throw error;
+    console.error('KV set error:', key, error?.message);
+    // Don't throw - just log and continue
   }
 }
 
@@ -65,8 +65,8 @@ export async function mset(keys: string[], values: any[]): Promise<void> {
   try {
     await withTimeout(kv.mset(keys, values));
   } catch (error: any) {
-    console.error('KV mset error:', error.message);
-    throw error;
+    console.error('KV mset error:', error?.message);
+    // Don't throw - just log and continue
   }
 }
 

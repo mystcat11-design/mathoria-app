@@ -4,36 +4,23 @@ import { logger } from "npm:hono/logger";
 import * as kv from "./kv_wrapper.tsx";
 const app = new Hono();
 
-// Enable CORS first (before logger)
-app.use(
-  "*",
-  cors({
-    origin: "*",
-    allowHeaders: ["Content-Type", "Authorization"],
-    allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    exposeHeaders: ["Content-Length"],
-    maxAge: 600,
-    credentials: false,
-  }),
-);
+// Enable CORS for all routes
+app.use("*", cors({
+  origin: "*",
+  allowHeaders: ["*"],
+  allowMethods: ["*"],
+  credentials: false,
+}));
 
-// Enable logger after CORS
-app.use('*', logger(console.log));
-
-// Error handler wrapper with timeout
+// Error handler wrapper - guarantees a Response
 const asyncHandler = (fn: any) => {
   return async (c: any) => {
     try {
-      const result = await Promise.resolve(fn(c));
-      if (!result) {
-        console.error('Handler returned null/undefined');
-        return c.json({ success: false, error: "No response from handler" }, 500);
-      }
+      const result = await fn(c);
       return result;
     } catch (error: any) {
-      console.error('Route error:', error?.message || error);
-      const errorMessage = error?.message || String(error) || "Unknown error";
-      return c.json({ success: false, error: errorMessage }, 500);
+      console.error('Route error:', error?.message);
+      return c.json({ success: false, error: "Internal error" }, 500);
     }
   };
 };
@@ -182,39 +169,32 @@ app.put("/make-server-773c0d79/essays/:id/score", asyncHandler(async (c) => {
   return c.json({ success: true, data: updated });
 }));
 
-// 404 handler for unknown routes
+// 404 handler
 app.notFound((c) => {
-  console.log('404 - Route not found:', c.req.url);
-  return c.json({ success: false, error: "Route not found" }, 404);
+  return c.json({ success: false, error: "Not found" }, 404);
 });
 
 // Global error handler
 app.onError((err, c) => {
-  console.error('Global error:', err?.message || err);
-  const errorMessage = err?.message || String(err) || "Internal server error";
-  return c.json({ success: false, error: errorMessage }, 500);
+  console.error('Global error:', err?.message);
+  return c.json({ success: false, error: "Server error" }, 500);
 });
 
-// Serve with wrapper to guarantee response
-const handler = async (req: Request): Promise<Response> => {
+// Serve with error boundary
+Deno.serve(async (req: Request) => {
   try {
-    console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
-    const response = await app.fetch(req);
-    console.log(`[${new Date().toISOString()}] Response status: ${response.status}`);
-    return response;
+    return await app.fetch(req);
   } catch (error: any) {
-    console.error('Fatal server error:', error?.message || error);
+    console.error('Server error:', error?.message);
     return new Response(
       JSON.stringify({ success: false, error: "Server error" }),
       {
         status: 500,
         headers: {
           "Content-Type": "application/json",
-          "Access-Control-Allow-Origin": "*",
+          "Access-Control-Allow-Origin": "*"
         }
       }
     );
   }
-};
-
-Deno.serve(handler);
+});
