@@ -1,91 +1,53 @@
-import { Hono } from "npm:hono";
-import { cors } from "npm:hono/cors";
+// Ultra-minimal server - no frameworks, no middleware
+Deno.serve((req: Request) => {
+  const url = new URL(req.url);
+  const headers = {
+    "Content-Type": "application/json",
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Methods": "*",
+    "Access-Control-Allow-Headers": "*",
+  };
 
-const app = new Hono();
-
-// CORS
-app.use("*", cors({ origin: "*" }));
-
-// Health check
-app.get("/make-server-773c0d79/health", (c) => {
-  return c.json({ status: "ok" });
-});
-
-// All routes return success immediately
-app.get("/make-server-773c0d79/students", (c) => {
-  return c.json({ success: true, data: [] });
-});
-
-app.get("/make-server-773c0d79/students/:id", (c) => {
-  return c.json({ success: false, error: "Student not found" }, 404);
-});
-
-app.post("/make-server-773c0d79/students", async (c) => {
-  try {
-    await c.req.json();
-    return c.json({ success: true, data: {} });
-  } catch {
-    return c.json({ success: false, error: "Invalid JSON" }, 400);
+  // Handle OPTIONS
+  if (req.method === "OPTIONS") {
+    return new Response(null, { status: 204, headers });
   }
-});
 
-app.put("/make-server-773c0d79/students/:id", async (c) => {
-  try {
-    await c.req.json();
-    return c.json({ success: true, data: {} });
-  } catch {
-    return c.json({ success: false, error: "Invalid JSON" }, 400);
+  // Health check
+  if (url.pathname === "/make-server-773c0d79/health") {
+    return new Response(
+      JSON.stringify({ status: "ok" }),
+      { status: 200, headers }
+    );
   }
-});
 
-app.delete("/make-server-773c0d79/students/:id", (c) => {
-  return c.json({ success: true, deletedEssays: 0 });
-});
-
-app.get("/make-server-773c0d79/questions", (c) => {
-  return c.json({ success: true, data: [] });
-});
-
-app.post("/make-server-773c0d79/questions", async (c) => {
-  try {
-    await c.req.json();
-    return c.json({ success: true });
-  } catch {
-    return c.json({ success: false, error: "Invalid JSON" }, 400);
+  // Students
+  if (url.pathname === "/make-server-773c0d79/students") {
+    return new Response(
+      JSON.stringify({ success: true, data: [] }),
+      { status: 200, headers }
+    );
   }
-});
 
-app.get("/make-server-773c0d79/essays/pending", (c) => {
-  return c.json({ success: true, data: [] });
-});
-
-app.get("/make-server-773c0d79/essays/student/:studentId", (c) => {
-  return c.json({ success: true, data: [] });
-});
-
-app.post("/make-server-773c0d79/essays", async (c) => {
-  try {
-    await c.req.json();
-    return c.json({ success: true });
-  } catch {
-    return c.json({ success: false, error: "Invalid JSON" }, 400);
+  // Questions
+  if (url.pathname === "/make-server-773c0d79/questions") {
+    return new Response(
+      JSON.stringify({ success: true, data: [] }),
+      { status: 200, headers }
+    );
   }
-});
 
-app.put("/make-server-773c0d79/essays/:id/score", async (c) => {
-  try {
-    await c.req.json();
-    return c.json({ success: true, data: {} });
-  } catch {
-    return c.json({ success: false, error: "Invalid JSON" }, 400);
+  // Essays
+  if (url.pathname.startsWith("/make-server-773c0d79/essays")) {
+    return new Response(
+      JSON.stringify({ success: true, data: [] }),
+      { status: 200, headers }
+    );
   }
+
+  // 404
+  return new Response(
+    JSON.stringify({ success: false, error: "Not found" }),
+    { status: 404, headers }
+  );
 });
-
-app.notFound((c) => c.json({ success: false, error: "Not found" }, 404));
-
-app.onError((err, c) => {
-  console.error(err);
-  return c.json({ success: false, error: "Error" }, 500);
-});
-
-Deno.serve(app.fetch);
