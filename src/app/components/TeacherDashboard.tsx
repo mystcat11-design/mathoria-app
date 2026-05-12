@@ -152,7 +152,7 @@ export function TeacherDashboard({ students, onLogout, questions, onUpdateQuesti
     }
   };
 
-  // Import data from JSON file
+  // Import data from JSON file - supports both old and new format
   const handleImportData = () => {
     const input = document.createElement('input');
     input.type = 'file';
@@ -165,17 +165,43 @@ export function TeacherDashboard({ students, onLogout, questions, onUpdateQuesti
       const reader = new FileReader();
       reader.onload = (event) => {
         try {
-          const importData = JSON.parse(event.target?.result as string);
+          const rawData = JSON.parse(event.target?.result as string);
+
+          // Detect and normalize format
+          let normalizedData: any = {};
+
+          // OLD FORMAT: has "timestamp" and stringified data
+          if (rawData.timestamp && typeof rawData.students === 'string') {
+            console.log('📦 Detected OLD backup format - converting...');
+            normalizedData = {
+              exportedAt: rawData.timestamp,
+              version: '1.0-legacy',
+              students: rawData.students ? JSON.parse(rawData.students) : [],
+              questions: rawData.questions ? JSON.parse(rawData.questions) : [],
+              essays: [],
+              customBadges: []
+            };
+          }
+          // NEW FORMAT: has "exportedAt" and array data
+          else {
+            console.log('📦 Detected NEW backup format');
+            normalizedData = rawData;
+          }
+
+          const studentsCount = normalizedData.students?.length || 0;
+          const questionsCount = normalizedData.questions?.length || 0;
+          const essaysCount = normalizedData.essays?.length || 0;
+          const badgesCount = normalizedData.customBadges?.length || 0;
 
           const confirmed = window.confirm(
             `Import data backup?\n\n` +
             `File: ${file.name}\n` +
-            `Export date: ${new Date(importData.exportedAt).toLocaleString('id-ID')}\n\n` +
+            `Backup date: ${new Date(normalizedData.exportedAt).toLocaleString('id-ID')}\n\n` +
             `Data yang akan di-import:\n` +
-            `• ${importData.students?.length || 0} siswa\n` +
-            `• ${importData.questions?.length || 0} soal\n` +
-            `• ${importData.essays?.length || 0} essay\n` +
-            `• ${importData.customBadges?.length || 0} custom badges\n\n` +
+            `• ${studentsCount} siswa\n` +
+            `• ${questionsCount} soal\n` +
+            `• ${essaysCount} essay\n` +
+            `• ${badgesCount} custom badges\n\n` +
             `⚠️ PERINGATAN: Data saat ini akan DIGABUNG dengan data import.\n` +
             `Data yang sudah ada TIDAK AKAN DIHAPUS.\n\n` +
             `Lanjutkan?`
@@ -183,43 +209,58 @@ export function TeacherDashboard({ students, onLogout, questions, onUpdateQuesti
 
           if (!confirmed) return;
 
+          let importedCounts = { students: 0, questions: 0, essays: 0, badges: 0 };
+
           // Merge with existing data (don't overwrite)
-          if (importData.students) {
+          if (normalizedData.students && Array.isArray(normalizedData.students)) {
             const existing = JSON.parse(localStorage.getItem('mathIRT_students') || '[]');
             const existingIds = new Set(existing.map((s: Student) => s.id));
-            const newStudents = importData.students.filter((s: Student) => !existingIds.has(s.id));
+            const newStudents = normalizedData.students.filter((s: Student) => !existingIds.has(s.id));
             const merged = [...existing, ...newStudents];
             localStorage.setItem('mathIRT_students', JSON.stringify(merged));
+            importedCounts.students = newStudents.length;
+            console.log(`✅ Imported ${newStudents.length} new students (${existing.length} already existed)`);
           }
 
-          if (importData.questions) {
+          if (normalizedData.questions && Array.isArray(normalizedData.questions)) {
             const existing = JSON.parse(localStorage.getItem('mathIRT_questions') || '[]');
             const existingIds = new Set(existing.map((q: Question) => q.id));
-            const newQuestions = importData.questions.filter((q: Question) => !existingIds.has(q.id));
+            const newQuestions = normalizedData.questions.filter((q: Question) => !existingIds.has(q.id));
             const merged = [...existing, ...newQuestions];
             localStorage.setItem('mathIRT_questions', JSON.stringify(merged));
+            importedCounts.questions = newQuestions.length;
+            console.log(`✅ Imported ${newQuestions.length} new questions (${existing.length} already existed)`);
           }
 
-          if (importData.essays) {
+          if (normalizedData.essays && Array.isArray(normalizedData.essays)) {
             const existing = JSON.parse(localStorage.getItem('mathIRT_essays') || '[]');
             const existingIds = new Set(existing.map((e: any) => e.id));
-            const newEssays = importData.essays.filter((e: any) => !existingIds.has(e.id));
+            const newEssays = normalizedData.essays.filter((e: any) => !existingIds.has(e.id));
             const merged = [...existing, ...newEssays];
             localStorage.setItem('mathIRT_essays', JSON.stringify(merged));
+            importedCounts.essays = newEssays.length;
+            console.log(`✅ Imported ${newEssays.length} new essays (${existing.length} already existed)`);
           }
 
-          if (importData.customBadges) {
+          if (normalizedData.customBadges && Array.isArray(normalizedData.customBadges)) {
             const existing = JSON.parse(localStorage.getItem('mathIRT_customBadges') || '[]');
             const existingNames = new Set(existing.map((b: CustomBadge) => b.name));
-            const newBadges = importData.customBadges.filter((b: CustomBadge) => !existingNames.has(b.name));
+            const newBadges = normalizedData.customBadges.filter((b: CustomBadge) => !existingNames.has(b.name));
             const merged = [...existing, ...newBadges];
             localStorage.setItem('mathIRT_customBadges', JSON.stringify(merged));
+            importedCounts.badges = newBadges.length;
+            console.log(`✅ Imported ${newBadges.length} new badges (${existing.length} already existed)`);
           }
 
-          toast.success('✅ Data berhasil di-import! Halaman akan di-refresh.');
-          setTimeout(() => window.location.reload(), 1500);
+          toast.success(
+            `✅ Import berhasil!\n` +
+            `${importedCounts.students} siswa, ${importedCounts.questions} soal, ` +
+            `${importedCounts.essays} essay, ${importedCounts.badges} badges baru ditambahkan.\n` +
+            `Halaman akan di-refresh...`
+          );
+          setTimeout(() => window.location.reload(), 2000);
         } catch (error) {
-          console.error('Import error:', error);
+          console.error('❌ Import error:', error);
           toast.error('❌ Gagal import data: ' + error);
         }
       };
