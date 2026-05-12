@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import * as React from 'react';
 import { Student } from '../App';
-import { Users, TrendingUp, Award, BookOpen, BarChart3, Activity, Trophy, Star, ChevronDown, ChevronUp, X } from 'lucide-react';
+import { Users, TrendingUp, Award, BookOpen, BarChart3, Activity, Trophy, Star, ChevronDown, ChevronUp, X, Download, Upload, AlertTriangle } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { getBadgeInfo, BADGE_ORDER, BADGE_INFO } from '../utils/badgeInfo';
 import { Question } from '../utils/irtEngine';
@@ -10,6 +10,7 @@ import { EssayReviewPanel } from './EssayReviewPanel';
 import { ErrorBoundary } from './ErrorBoundary';
 import { chapters } from '../utils/chapterConfig';
 import { BadgeManager, CustomBadge } from './BadgeManager';
+import { toast } from 'sonner';
 
 interface TeacherDashboardProps {
   students: Student[];
@@ -116,6 +117,117 @@ export function TeacherDashboard({ students, onLogout, questions, onUpdateQuesti
       return customBadge;
     }
     return getBadgeInfo(badgeName);
+  };
+
+  // Export ALL data to JSON file
+  const handleExportData = () => {
+    try {
+      const studentsData = localStorage.getItem('mathIRT_students') || '[]';
+      const questionsData = localStorage.getItem('mathIRT_questions') || '[]';
+      const essaysData = localStorage.getItem('mathIRT_essays') || '[]';
+      const customBadgesData = localStorage.getItem('mathIRT_customBadges') || '[]';
+
+      const exportData = {
+        exportedAt: new Date().toISOString(),
+        version: '1.0',
+        students: JSON.parse(studentsData),
+        questions: JSON.parse(questionsData),
+        essays: JSON.parse(essaysData),
+        customBadges: JSON.parse(customBadgesData)
+      };
+
+      const dataStr = JSON.stringify(exportData, null, 2);
+      const dataBlob = new Blob([dataStr], { type: 'application/json' });
+      const url = URL.createObjectURL(dataBlob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `mathIRT_backup_${new Date().toISOString().slice(0, 10)}.json`;
+      link.click();
+      URL.revokeObjectURL(url);
+
+      toast.success(`✅ Data berhasil di-export!\n${exportData.students.length} siswa, ${exportData.questions.length} soal, ${exportData.essays.length} essay`);
+    } catch (error) {
+      console.error('Export error:', error);
+      toast.error('❌ Gagal export data: ' + error);
+    }
+  };
+
+  // Import data from JSON file
+  const handleImportData = () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json';
+
+    input.onchange = (e: Event) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        try {
+          const importData = JSON.parse(event.target?.result as string);
+
+          const confirmed = window.confirm(
+            `Import data backup?\n\n` +
+            `File: ${file.name}\n` +
+            `Export date: ${new Date(importData.exportedAt).toLocaleString('id-ID')}\n\n` +
+            `Data yang akan di-import:\n` +
+            `• ${importData.students?.length || 0} siswa\n` +
+            `• ${importData.questions?.length || 0} soal\n` +
+            `• ${importData.essays?.length || 0} essay\n` +
+            `• ${importData.customBadges?.length || 0} custom badges\n\n` +
+            `⚠️ PERINGATAN: Data saat ini akan DIGABUNG dengan data import.\n` +
+            `Data yang sudah ada TIDAK AKAN DIHAPUS.\n\n` +
+            `Lanjutkan?`
+          );
+
+          if (!confirmed) return;
+
+          // Merge with existing data (don't overwrite)
+          if (importData.students) {
+            const existing = JSON.parse(localStorage.getItem('mathIRT_students') || '[]');
+            const existingIds = new Set(existing.map((s: Student) => s.id));
+            const newStudents = importData.students.filter((s: Student) => !existingIds.has(s.id));
+            const merged = [...existing, ...newStudents];
+            localStorage.setItem('mathIRT_students', JSON.stringify(merged));
+          }
+
+          if (importData.questions) {
+            const existing = JSON.parse(localStorage.getItem('mathIRT_questions') || '[]');
+            const existingIds = new Set(existing.map((q: Question) => q.id));
+            const newQuestions = importData.questions.filter((q: Question) => !existingIds.has(q.id));
+            const merged = [...existing, ...newQuestions];
+            localStorage.setItem('mathIRT_questions', JSON.stringify(merged));
+          }
+
+          if (importData.essays) {
+            const existing = JSON.parse(localStorage.getItem('mathIRT_essays') || '[]');
+            const existingIds = new Set(existing.map((e: any) => e.id));
+            const newEssays = importData.essays.filter((e: any) => !existingIds.has(e.id));
+            const merged = [...existing, ...newEssays];
+            localStorage.setItem('mathIRT_essays', JSON.stringify(merged));
+          }
+
+          if (importData.customBadges) {
+            const existing = JSON.parse(localStorage.getItem('mathIRT_customBadges') || '[]');
+            const existingNames = new Set(existing.map((b: CustomBadge) => b.name));
+            const newBadges = importData.customBadges.filter((b: CustomBadge) => !existingNames.has(b.name));
+            const merged = [...existing, ...newBadges];
+            localStorage.setItem('mathIRT_customBadges', JSON.stringify(merged));
+          }
+
+          toast.success('✅ Data berhasil di-import! Halaman akan di-refresh.');
+          setTimeout(() => window.location.reload(), 1500);
+        } catch (error) {
+          console.error('Import error:', error);
+          toast.error('❌ Gagal import data: ' + error);
+        }
+      };
+
+      reader.readAsText(file);
+    };
+
+    input.click();
   };
 
   const stats = useMemo(() => {
@@ -264,6 +376,25 @@ export function TeacherDashboard({ students, onLogout, questions, onUpdateQuesti
                 <Trophy className="w-5 h-5 text-purple-600" />
                 <span className="text-sm font-semibold text-purple-700">Guru</span>
               </div>
+
+              {/* Data Backup Controls */}
+              <button
+                onClick={handleExportData}
+                className="px-4 py-2 text-sm bg-green-600 text-white hover:bg-green-700 rounded-lg transition-colors font-medium flex items-center gap-2"
+                title="Export semua data (siswa, soal, essay) ke file JSON"
+              >
+                <Download className="w-4 h-4" />
+                Backup Data
+              </button>
+              <button
+                onClick={handleImportData}
+                className="px-4 py-2 text-sm bg-blue-600 text-white hover:bg-blue-700 rounded-lg transition-colors font-medium flex items-center gap-2"
+                title="Import data dari file JSON backup"
+              >
+                <Upload className="w-4 h-4" />
+                Restore Data
+              </button>
+
               <button
                 onClick={() => setShowBadgeManager(true)}
                 className="px-4 py-2 text-sm bg-purple-600 text-white hover:bg-purple-700 rounded-lg transition-colors font-medium flex items-center gap-2"
@@ -274,7 +405,7 @@ export function TeacherDashboard({ students, onLogout, questions, onUpdateQuesti
               </button>
               <button
                 onClick={handleRefreshTheta}
-                className="px-4 py-2 text-sm bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors font-medium"
+                className="px-4 py-2 text-sm bg-purple-50 text-purple-600 hover:bg-purple-100 rounded-lg transition-colors font-medium"
                 title="Refresh nilai theta untuk semua siswa"
               >
                 Refresh Theta
@@ -342,6 +473,66 @@ export function TeacherDashboard({ students, onLogout, questions, onUpdateQuesti
             </div>
           </div>
         </div>
+
+        {/* Data Warning Banner */}
+        {(students.length === 0 || questions.length === 0) && (
+          <div className="mb-6 bg-orange-50 border-2 border-orange-300 rounded-xl p-4">
+            <div className="flex items-start gap-3">
+              <AlertTriangle className="w-6 h-6 text-orange-600 flex-shrink-0 mt-0.5" />
+              <div className="flex-1">
+                <h3 className="font-bold text-orange-900 mb-2">⚠️ Peringatan: Data Kosong atau Minimal</h3>
+                <p className="text-sm text-orange-800 mb-3">
+                  {students.length === 0 && questions.length === 0 && "Tidak ada data siswa dan soal. "}
+                  {students.length === 0 && questions.length > 0 && "Tidak ada data siswa. "}
+                  {students.length > 0 && questions.length === 0 && "Tidak ada data soal. "}
+                  Untuk mencegah kehilangan data:
+                </p>
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={handleExportData}
+                    className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium text-sm flex items-center gap-2"
+                  >
+                    <Download className="w-4 h-4" />
+                    Backup Data Sekarang
+                  </button>
+                  {students.length === 0 || questions.length === 0 ? (
+                    <button
+                      onClick={handleImportData}
+                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium text-sm flex items-center gap-2"
+                    >
+                      <Upload className="w-4 h-4" />
+                      Restore dari Backup
+                    </button>
+                  ) : null}
+                  <span className="text-xs text-orange-700">
+                    💡 Backup data secara berkala untuk keamanan maksimal
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Data Status Info - when data exists */}
+        {students.length > 0 && questions.length > 0 && (
+          <div className="mb-6 bg-blue-50 border border-blue-200 rounded-xl p-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                <span className="text-sm text-blue-900">
+                  📊 Data tersimpan: <strong>{students.length} siswa</strong>, <strong>{questions.length} soal</strong>
+                </span>
+              </div>
+              <button
+                onClick={handleExportData}
+                className="px-3 py-1 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors text-xs font-medium flex items-center gap-1"
+              >
+                <Download className="w-3 h-3" />
+                Backup Sekarang
+              </button>
+            </div>
+          </div>
+        )}
 
         <div className="mb-8">
           <div className="flex items-center gap-4">
