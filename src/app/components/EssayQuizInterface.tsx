@@ -102,12 +102,19 @@ export function EssayQuizInterface({ student, selectedLevel, onComplete, onCance
         status: 'pending' as const,
       }));
 
-      // Save to Supabase
+      // Save to localStorage FIRST (untuk backup)
+      const existingEssays = localStorage.getItem('mathIRT_essays');
+      const allEssays = existingEssays ? JSON.parse(existingEssays) : [];
+      allEssays.push(...submissions);
+      localStorage.setItem('mathIRT_essays', JSON.stringify(allEssays));
+      console.log(`💾 ${submissions.length} essay answers saved to localStorage`);
+
+      // Save to Supabase (cloud backup)
       for (const submission of submissions) {
         await supabaseClient.saveEssaySubmission(submission);
       }
 
-      console.log(`✅ ${submissions.length} essay answers submitted for review`);
+      console.log(`✅ ${submissions.length} essay answers submitted for review (local + cloud)`);
 
       // Give preliminary XP and ability boost for essay submission
       // Actual score will be updated after teacher review
@@ -124,8 +131,15 @@ export function EssayQuizInterface({ student, selectedLevel, onComplete, onCance
         timestamp: new Date().toISOString(),
         level: selectedLevel,
         xpEarned,
+        answerDetails: questions.map(q => ({
+          questionId: q.id,
+          topic: q.topic,
+          pisaLevel: q.pisaLevel,
+          isCorrect: false // Will be updated after review
+        }))
       };
 
+      console.log('📝 Essay quiz completed! Marking level 6 as completed.');
       onComplete(result);
     } catch (error) {
       console.error('Error submitting essays:', error);

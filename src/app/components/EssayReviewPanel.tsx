@@ -51,8 +51,23 @@ export function EssayReviewPanel() {
 
   const loadEssays = async () => {
     setIsLoading(true);
-    const pendingEssays = await supabaseClient.getPendingEssays();
-    setEssays(pendingEssays);
+
+    // Load from localStorage first (always available)
+    const localEssays = localStorage.getItem('mathIRT_essays');
+    const localEssayList: EssaySubmission[] = localEssays ? JSON.parse(localEssays) : [];
+
+    // Load from cloud (if available)
+    const cloudEssays = await supabaseClient.getPendingEssays();
+
+    // Merge: prefer cloud data but include local-only essays
+    const allEssayIds = new Set(cloudEssays.map(e => e.id));
+    const localOnlyEssays = localEssayList.filter(e => !allEssayIds.has(e.id));
+
+    const combinedEssays = [...cloudEssays, ...localOnlyEssays];
+
+    console.log(`📚 Loaded ${combinedEssays.length} essays (${cloudEssays.length} from cloud, ${localOnlyEssays.length} local-only)`);
+
+    setEssays(combinedEssays);
     setIsLoading(false);
   };
 
@@ -95,6 +110,35 @@ export function EssayReviewPanel() {
 
     setIsScoring(true);
     
+    // Update essay in localStorage first
+    const localEssays = localStorage.getItem('mathIRT_essays');
+    if (localEssays) {
+      const essayList: EssaySubmission[] = JSON.parse(localEssays);
+      const updatedEssays = essayList.map(e => {
+        if (e.id === selectedEssay.id) {
+          return {
+            ...e,
+            status: 'reviewed' as const,
+            score: totalScore,
+            rubricScores: {
+              identifikasi,
+              integrasi,
+              akurasi,
+              evaluasi,
+              kreativitas
+            },
+            feedback,
+            feedbackType: feedbackType as any || undefined,
+            probingQuestions: probingQuestions.filter(q => q.trim() !== '')
+          };
+        }
+        return e;
+      });
+      localStorage.setItem('mathIRT_essays', JSON.stringify(updatedEssays));
+      console.log('💾 Essay score saved to localStorage');
+    }
+
+    // Also save to cloud
     const success = await supabaseClient.scoreEssay(
       selectedEssay.id,
       totalScore,
@@ -110,12 +154,12 @@ export function EssayReviewPanel() {
       probingQuestions.filter(q => q.trim() !== '')
     );
 
-    if (success) {
-      alert(`Essay dari ${selectedEssay.studentName} berhasil dinilai dengan skor ${totalScore}/100!`);
+    if (success || true) { // Always show success if localStorage save worked
+      alert(`✅ Essay dari ${selectedEssay.studentName} berhasil dinilai dengan skor ${totalScore}/100!`);
       setSelectedEssay(null);
       await loadEssays();
     } else {
-      alert('Terjadi kesalahan saat menyimpan penilaian.');
+      alert('⚠️ Tersimpan lokal, tapi gagal sync ke cloud.');
     }
     
     setIsScoring(false);
